@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        Int            @id @default(autoincrement())
+  nama                      String         @db.VarChar(100)
+  username                  String         @unique(map: "username") @db.VarChar(50)
+  password                  String         @db.VarChar(255)
+  role                      Role           @default(peminjam)
+  createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
+  logAktivitas              LogAktivitas[]
+  peminjamanSebagaiPeminjam Peminjaman[]   @relation("PeminjamRelation")
+  peminjamanSebagaiPetugas  Peminjaman[]   @relation("PetugasRelation")
+  pengembalian              Pengembalian[]
+
+  @@map("users")
+}
+
+model Kategori {
+  id        Int     @id @default(autoincrement())
+  nama      String  @unique @db.VarChar(100)
+  deskripsi String? @db.Text
+  alat      Alat[]
+
+  @@map("kategori")
+}
+
+model Alat {
+  id         Int        @id @default(autoincrement())
+  kategoriId Int        @map("kategori_id")
+  nama       String     @db.VarChar(100)
+  deskripsi  String?    @db.Text
+  kategori   Kategori   @relation(fields: [kategoriId], references: [id], onUpdate: NoAction, map: "fk_alat_kategori")
+  units      AlatUnit[]
+  image     String?
+  stok      Int     @default(0)
+  @@index([kategoriId], map: "fk_alat_kategori")
+  @@map("alat")
+}
+
+model AlatUnit {
+  id       Int                @id @default(autoincrement())
+  alatId   Int                @map("alat_id")
+  kodeUnit String             @unique(map: "kode_unit") @map("kode_unit") @db.VarChar(20)
+  kondisi  Kondisi            @default(baik)
+  status   StatusUnit         @default(tersedia)
+  alat     Alat               @relation(fields: [alatId], references: [id], onUpdate: NoAction, map: "fk_unit_alat")
+  details  DetailPeminjaman[]
+
+  @@index([alatId], map: "fk_unit_alat")
+  @@map("alat_unit")
+}
+
+model Peminjaman {
+  id                    Int                @id @default(autoincrement())
+  peminjamId            Int                @map("peminjam_id")
+  petugasId             Int?               @map("petugas_id")
+  tanggalPinjam         DateTime           @map("tanggal_pinjam") @db.Date
+  tanggalRencanaKembali DateTime           @map("tanggal_rencana_kembali") @db.Date
+  status                StatusPeminjaman   @default(pending)
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
+  details               DetailPeminjaman[]
+  peminjam              User               @relation("PeminjamRelation", fields: [peminjamId], references: [id], onUpdate: NoAction, map: "fk_peminjaman_peminjam")
+  petugas               User?              @relation("PetugasRelation", fields: [petugasId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_peminjaman_petugas")
+  pengembalian          Pengembalian?
+
+  @@index([peminjamId], map: "fk_peminjaman_peminjam")
+  @@index([petugasId], map: "fk_peminjaman_petugas")
+  @@map("peminjaman")
+}
+
+model DetailPeminjaman {
+  id           Int        @id @default(autoincrement())
+  peminjamanId Int        @map("peminjaman_id")
+  alatUnitId   Int        @map("alat_unit_id")
+  peminjaman   Peminjaman @relation(fields: [peminjamanId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_detail_peminjaman")
+  alatUnit     AlatUnit   @relation(fields: [alatUnitId], references: [id], onUpdate: NoAction, map: "fk_detail_unit")
+
+  @@index([peminjamanId], map: "fk_detail_peminjaman")
+  @@index([alatUnitId], map: "fk_detail_unit")
+  @@map("detail_peminjaman")
+}
+
+model Pengembalian {
+  id                   Int        @id @default(autoincrement())
+  peminjamanId         Int        @unique(map: "peminjaman_id") @map("peminjaman_id")
+  petugasId            Int        @map("petugas_id")
+  tanggalKembaliAktual DateTime   @map("tanggal_kembali_aktual") @db.Date
+  jumlahHariTerlambat  Int        @default(0) @map("jumlah_hari_terlambat")
+  totalDenda           Int        @default(0) @map("total_denda")
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  peminjaman           Peminjaman @relation(fields: [peminjamanId], references: [id], onUpdate: NoAction, map: "fk_pengembalian_peminjaman")
+  petugas              User       @relation(fields: [petugasId], references: [id], onUpdate: NoAction, map: "fk_pengembalian_petugas")
+
+  @@index([petugasId], map: "fk_pengembalian_petugas")
+  @@map("pengembalian")
+}
+
+model LogAktivitas {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  aksi       String   @db.VarChar(100)
+  keterangan String?  @db.Text
+  waktu      DateTime @default(now()) @db.Timestamp(0)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_log_user")
+
+  @@index([userId], map: "fk_log_user")
+  @@map("log_aktivitas")
+}
+
+enum Role {
+  admin
+  petugas
+  peminjam
+}
+
+enum Kondisi {
+  baik
+  rusak_ringan
+  rusak_berat
+}
+
+enum StatusUnit {
+  tersedia
+  dipinjam
+  tidak_tersedia
+}
+
+enum StatusPeminjaman {
+  pending
+  disetujui
+  ditolak
+  selesai
+}

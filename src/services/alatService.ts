@@ -1,0 +1,74 @@
+import { db } from "@/lib/db";
+import { logActivity } from "./logService";
+
+export async function getAllAlat() {
+    return db.alat.findMany({
+        include: {
+            kategori: true,
+        },
+        orderBy: { nama: "asc" },
+    });
+}
+
+export async function createAlat(data: {
+    nama: string;
+    deskripsi?: string;
+    kategoriId: number;
+    image?: string;
+    stok: number;
+}, currentUserId: number) {
+    // validasi kategori
+    const kategori = await db.kategori.findUnique({
+        where: { id: data.kategoriId },
+    });
+
+    if (!kategori) throw new Error("Kategori tidak ditemukan");
+
+    await logActivity(
+        currentUserId,
+        "CREATE_ALAT",
+        `Membuat alat ${data.nama}`
+    );
+    return db.alat.create({
+        data,
+    });
+}
+
+export async function updateAlat(
+    id: number,
+    data: {
+        nama: string;
+        deskripsi?: string;
+        kategoriId: number;
+        image?: string;
+        stok: number;
+    }, currentUserId: number
+) {
+    const alat = await db.alat.findUnique({ where: { id } });
+    if (!alat) throw new Error("Alat tidak ditemukan");
+
+    await logActivity(
+        currentUserId,
+        "UPDATE_ALAT",
+        `Mengupdate alat ${data.nama}`
+    );
+    return db.alat.update({
+        where: { id },
+        data,
+    });
+}
+
+export async function deleteAlat(id: number, currentUserId: number) {
+    const alat = await db.alat.findUnique({
+        where: { id },
+    });
+
+    if (!alat) throw new Error("Alat tidak ditemukan");
+
+    await logActivity(
+        currentUserId,
+        "DELETE_ALAT",
+        `Menghapus alat ${alat.nama}`
+    );
+    return db.alat.delete({ where: { id } });
+}
