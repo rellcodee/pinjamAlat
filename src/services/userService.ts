@@ -16,6 +16,7 @@ export async function getAllUsers() {
 
 // POST
 export async function createUser(
+    id: number,
     nama: string,
     username: string,
     password: string,
@@ -24,7 +25,10 @@ export async function createUser(
 ) {
     try {
         const exists = await db.user.findFirst({
-            where: { username }
+            where: {
+                username,
+                NOT: { id }
+            }
         });
 
         if (exists) throw new Error("Username sudah dipakai");
@@ -62,7 +66,10 @@ export async function updateUser(
     try {
 
         const exists = await db.user.findFirst({
-            where: { username }
+            where: {
+                username,
+                NOT: { id }
+            }
         });
 
         if (exists) throw new Error("Username sudah dipakai");

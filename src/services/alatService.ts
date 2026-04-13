@@ -2,12 +2,17 @@ import { db } from "@/lib/db";
 import { logActivity } from "./logService";
 
 export async function getAllAlat() {
-    return db.alat.findMany({
+    const alat = await db.alat.findMany({
         include: {
             kategori: true,
+            units: true,
         },
         orderBy: { nama: "asc" },
     });
+    return alat.map(a => ({
+        ...a,
+        stok: a.units.filter(u => u.status === "tersedia").length
+    }));
 }
 
 export async function createAlat(data: {
@@ -15,7 +20,6 @@ export async function createAlat(data: {
     deskripsi?: string;
     kategoriId: number;
     image?: string;
-    stok: number;
 }, currentUserId: number) {
     // validasi kategori
     const kategori = await db.kategori.findUnique({
@@ -41,7 +45,6 @@ export async function updateAlat(
         deskripsi?: string;
         kategoriId: number;
         image?: string;
-        stok: number;
     }, currentUserId: number
 ) {
     const alat = await db.alat.findUnique({ where: { id } });
@@ -55,6 +58,10 @@ export async function updateAlat(
     return db.alat.update({
         where: { id },
         data,
+        include: {
+            kategori: true,
+            units: true,
+        }
     });
 }
 

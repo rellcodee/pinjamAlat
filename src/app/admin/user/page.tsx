@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-
+import { Trash2, Pencil } from "lucide-react";
 export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [showForm, setShowForm] = useState(false);
@@ -29,9 +28,7 @@ export default function UsersPage() {
     };
 
     const fetchAll = async () => {
-        setLoading(true);
         await fetchUsers();
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -67,7 +64,9 @@ export default function UsersPage() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-
+            if (form.id) {
+                setSelectedUser(data);
+            }
             setForm({
                 id: null,
                 nama: "",
@@ -107,9 +106,6 @@ export default function UsersPage() {
             role: u.role,
         });
     };
-
-    if (loading) return <div className="p-6">Loading...</div>;
-
     return (
         <AppLayout>
             <div className="p-6">
@@ -184,13 +180,13 @@ export default function UsersPage() {
                 <div className="flex gap-4">
 
                     {/* TABLE */}
-                    <div className={`${selectedUser ? "w-1/3" : "w-full"} border bg-white rounded-xl overflow-hidden`}>
+                    <div className={`${selectedUser ? "w-1/1" : "w-full"} border bg-white rounded-xl overflow-hidden`}>
                         <table className="w-full text-sm">
                             <thead className="bg-white border-b">
                                 <tr>
-                                    <th className="p-3 text-left">Nama</th>
-                                    <th className="p-3 text-left">Username</th>
-                                    <th className="p-3 text-left">Role</th>
+                                    <th className="p-3 text-left text-gray-700">Nama</th>
+                                    <th className="p-3 text-left text-gray-700">Username</th>
+                                    <th className="p-3 text-left text-gray-700">Role</th>
                                 </tr>
                             </thead>
 
@@ -208,9 +204,9 @@ export default function UsersPage() {
                         ${selectedUser?.id === u.id ? "bg-blue-50" : ""}
                       `}
                                         >
-                                            <td className="p-3 font-medium text-gray-900">{u.nama}</td>
-                                            <td className="p-3 text-gray-500">{u.username}</td>
-                                            <td className="p-3 capitalize">{u.role}</td>
+                                            <td className="p-3 font-medium text-gray-700">{u.nama}</td>
+                                            <td className="p-3 text-gray-700">{u.username}</td>
+                                            <td className="p-3 capitalize text-gray-700">{u.role}</td>
                                         </tr>
                                     ))}
                             </tbody>
@@ -236,28 +232,30 @@ export default function UsersPage() {
                                     ✕
                                 </button>
 
-                                {/* AVATAR */}
-                                <img
-                                    src={defaultAvatar}
-                                    className="w-full h-48 object-contain rounded mb-3"
-                                />
-
                                 {/* ACTION */}
-                                <div className="flex gap-2 mb-3">
+                                <div className="absolute top-4 right-4 flex gap-2">
                                     <button
                                         onClick={() => handleEdit(selectedUser)}
-                                        className="bg-blue-500 text-white px-3 py-1 rounded"
+                                        className="bg-blue-500 text-white px-3 py-3 rounded"
                                     >
-                                        Edit
+                                        <Pencil size={15} />
                                     </button>
 
                                     <button
                                         onClick={() => handleDelete(selectedUser.id)}
-                                        className="bg-red-500 text-white px-3 py-1 rounded"
+                                        className="bg-red-500 text-white px-3 py-3 rounded"
                                     >
-                                        Hapus
+                                        <Trash2 size={15} />
                                     </button>
                                 </div>
+
+                                {/* AVATAR */}
+                                <img
+                                    src={defaultAvatar}
+                                    className="w-full h-45 object-contain rounded mb-3 mt-8"
+                                />
+
+
 
                                 {/* INFO */}
                                 <h2 className="text-lg font-bold text-black">
@@ -265,12 +263,13 @@ export default function UsersPage() {
                                 </h2>
 
                                 <p className="text-gray-500">
-                                    @{selectedUser.username}
+                                    Username : {selectedUser.username}
                                 </p>
 
                                 <p className="mt-2 text-sm text-black">
                                     Role: <b className="capitalize">{selectedUser.role}</b>
                                 </p>
+
                             </div>
                         ) : (
                             <div className="text-gray-400 text-center w-full">

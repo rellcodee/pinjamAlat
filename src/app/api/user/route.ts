@@ -25,7 +25,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
     }
     try {
-        const user = await createUser(body.nama, body.username, body.password, body.role, Number(session.user.id));
+        const user = await createUser(body.id, body.nama, body.username, body.password, body.role, Number(session.user.id));
         return NextResponse.json(user);
     }
     catch (error: any) {

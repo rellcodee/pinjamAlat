@@ -22,8 +22,33 @@ export async function middleware(req: any) {
         }
     }
 
+    // Protect Petugas
+    if (pathname.startsWith("/petugas")) {
+        if (!token) {
+            return NextResponse.redirect(new URL("/login", req.url))
+        }
+
+        if (token.role !== "petugas") {
+            return NextResponse.redirect(new URL(`/${token.role}`, req.url))
+        }
+    }
+
+    // Protect Peminjam
+
+    if (pathname.startsWith("/peminjam")) {
+        if (!token) {
+            return NextResponse.redirect(new URL("/login", req.url))
+        }
+
+        if (token.role !== "peminjam") {
+            return NextResponse.redirect(new URL(`/${token.role}`, req.url))
+        }
+    }
+
     return NextResponse.next()
 }
+
+
 
 export const config = {
     matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth).*)"],

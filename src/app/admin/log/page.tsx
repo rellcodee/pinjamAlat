@@ -25,20 +25,16 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         try {
             const [uRes, kRes, aRes, lRes] = await Promise.all([
-                fetch("/api/user"),
-                fetch("/api/kategori"),
-                fetch("/api/alat"),
-                fetch("/api/log"),
+                fetch("/api/user", { credentials: "include" }),
+                fetch("/api/kategori", { credentials: "include" }),
+                fetch("/api/alat", { credentials: "include" }),
+                fetch("/api/log", { credentials: "include" }),
             ]);
 
             const u = await uRes.json();
             const k = await kRes.json();
             const a = await aRes.json();
             const l = await lRes.json();
-            console.log("users:", u);
-            console.log("kategori:", k);
-            console.log("alat:", a);
-            console.log("logs:", l);
 
             setUsers(Array.isArray(u) ? u.length : 0);
             setKategori(Array.isArray(k) ? k.length : 0);
@@ -46,7 +42,7 @@ export default function AdminDashboard() {
             setLogs(Array.isArray(l) ? l.slice(0, 3) : []);
 
         } catch (err) {
-            console.log(err);
+            console.log("Fetch error:", err);
         } finally {
             setLoading(false);
         }
@@ -59,48 +55,48 @@ export default function AdminDashboard() {
     const formatTanggal = (date: string) => {
         return new Date(date).toLocaleString("id-ID");
     };
+
+    // 🔥 STYLE AKSI
     const getAksiStyle = (aksi: string) => {
         if (aksi.includes("CREATE")) {
             return {
-                icon: <PlusCircle size={14} />,
+                icon: <PlusCircle size={12} />,
                 class: "bg-green-100 text-green-600"
             };
         }
 
         if (aksi.includes("UPDATE")) {
             return {
-                icon: <Pencil size={14} />,
+                icon: <Pencil size={12} />,
                 class: "bg-yellow-100 text-yellow-600"
             };
         }
 
         if (aksi.includes("DELETE")) {
             return {
-                icon: <Trash2 size={14} />,
+                icon: <Trash2 size={12} />,
                 class: "bg-red-100 text-red-600"
             };
         }
 
         return {
-            icon: <Activity size={14} />,
+            icon: <Activity size={12} />,
             class: "bg-gray-100 text-gray-600"
         };
     };
+
     return (
         <AppLayout>
-            {/* 🔥 CONTAINER FIX */}
             <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 overflow-hidden">
 
-                {/* 🔥 WELCOME CARD FIX TOTAL */}
-                <div className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl p-2 flex flex-col md:flex-row items-center gap-6">
+                {/* 🔥 WELCOME */}
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl p-2 flex flex-col md:flex-row items-center gap-6">
 
-                    {/* IMAGE */}
                     <img
                         src="/dashboard.png"
                         className="h-32 md:h-40 object-contain"
                     />
 
-                    {/* TEXT */}
                     <div className="text-center md:text-left">
                         <h1 className="text-lg md:text-2xl font-bold">
                             Welcome Back, Admin 👋
@@ -114,47 +110,42 @@ export default function AdminDashboard() {
 
                 {/* 🔥 STATS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <Link href={"/admin/user"}>
-                        <div className="bg-green-100 p-4 rounded-xl flex items-center gap-4">
-                            <div className="bg-green-200 p-3 rounded-lg">
-                                <Users className="text-green-700" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Users</p>
-                                <h2 className="text-xl font-bold text-gray-800">{users}</h2>
-                            </div>
-                        </div>
-                    </Link>
-                    <Link href={"/admin/kategori"}>
-                        <div className="bg-yellow-100 p-4 rounded-xl flex items-center gap-4">
-                            <div className="bg-yellow-200 p-3 rounded-lg">
-                                <Boxes className="text-yellow-700" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Kategori</p>
-                                <h2 className="text-xl font-bold text-gray-800">{kategori}</h2>
-                            </div>
-                        </div>
-                    </Link>
-                    <Link href="/admin/alat">
-                        <div className="bg-blue-100 p-4 rounded-xl flex items-center gap-4">
-                            <div className="bg-blue-200 p-3 rounded-lg">
-                                <Wrench className="text-blue-700" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Alat</p>
-                                <h2 className="text-xl font-bold text-gray-800">{alat}</h2>
-                            </div>
-                        </div>
-                    </Link>
 
+                    <div className="bg-green-100 p-4 rounded-xl flex items-center gap-4">
+                        <div className="bg-green-200 p-3 rounded-lg">
+                            <Users className="text-green-700" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-600">Users</p>
+                            <h2 className="text-xl font-bold text-gray-800">{users}</h2>
+                        </div>
+                    </div>
+
+                    <div className="bg-yellow-100 p-4 rounded-xl flex items-center gap-4">
+                        <div className="bg-yellow-200 p-3 rounded-lg">
+                            <Boxes className="text-yellow-700" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-600">Kategori</p>
+                            <h2 className="text-xl font-bold text-gray-800">{kategori}</h2>
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-100 p-4 rounded-xl flex items-center gap-4">
+                        <div className="bg-blue-200 p-3 rounded-lg">
+                            <Wrench className="text-blue-700" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-600">Alat</p>
+                            <h2 className="text-xl font-bold text-gray-800">{alat}</h2>
+                        </div>
+                    </div>
 
                 </div>
 
                 {/* 🔥 TABLE */}
                 <div className="bg-white rounded-xl shadow">
 
-                    {/* HEADER */}
                     <div className="flex justify-between items-center p-4 border-b">
                         <div className="flex items-center gap-2">
                             <Clock size={18} />
@@ -169,7 +160,6 @@ export default function AdminDashboard() {
                         </Link>
                     </div>
 
-                    {/* TABLE WRAPPER */}
                     <div className="overflow-x-auto">
 
                         <table className="w-full text-sm">
@@ -185,27 +175,30 @@ export default function AdminDashboard() {
                             <tbody>
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={4} className="text-center p-4 text-gray-400">
+                                        <td colSpan={3} className="text-center p-4 text-gray-400">
                                             Loading...
                                         </td>
                                     </tr>
                                 ) : logs.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="text-center p-4 text-gray-400">
+                                        <td colSpan={3} className="text-center p-4 text-gray-400">
                                             Tidak ada aktivitas
                                         </td>
                                     </tr>
                                 ) : (
                                     logs.map((log, i) => {
                                         const style = getAksiStyle(log.aksi || "");
+
                                         return (
                                             <tr
                                                 key={log.id}
                                                 className={i % 2 === 0 ? "bg-gray-100" : "bg-white"}
                                             >
-                                                <td className="p-3 text-black">{log.user?.nama || "-"}</td>
+                                                <td className="p-3">
+                                                    {log.user?.nama || "-"}
+                                                </td>
 
-                                                <td className="p-3 font-semibold">
+                                                <td className="p-3">
                                                     <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium transition ${style.class}`}>
                                                         {style.icon}
                                                         <span>
@@ -214,12 +207,11 @@ export default function AdminDashboard() {
                                                     </div>
                                                 </td>
 
-
                                                 <td className="p-1 text-gray-500">
                                                     {formatTanggal(log.waktu)}
                                                 </td>
                                             </tr>
-                                        )
+                                        );
                                     })
                                 )}
                             </tbody>

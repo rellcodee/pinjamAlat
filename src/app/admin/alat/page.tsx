@@ -2,10 +2,16 @@
 
 import { useEffect, useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
+import Link from "next/link";
+import {
+    Pencil,
+    Trash2,
+    Wrench
+} from "lucide-react";
+
 export default function AlatPage() {
     const [alat, setAlat] = useState<any[]>([]);
     const [kategori, setKategori] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
     const [selectedAlat, setSelectedAlat] = useState<any | null>(null);
 
@@ -17,7 +23,6 @@ export default function AlatPage() {
         deskripsi: "",
         kategoriId: 0,
         image: "",
-        stok: 0,
     });
 
     // 🔥 FETCH
@@ -34,9 +39,7 @@ export default function AlatPage() {
     };
 
     const fetchAll = async () => {
-        setLoading(true);
         await Promise.all([fetchAlat(), fetchKategori()]);
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -75,14 +78,15 @@ export default function AlatPage() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-
+            if (form.id) {
+                setSelectedAlat(data);
+            }
             setForm({
                 id: null,
                 nama: "",
                 deskripsi: "",
                 kategoriId: 0,
                 image: "",
-                stok: 0,
             });
 
             setShowForm(false);
@@ -114,25 +118,26 @@ export default function AlatPage() {
             deskripsi: a.deskripsi || "",
             kategoriId: a.kategoriId,
             image: a.image || "",
-            stok: a.stok,
         });
     };
-
-    if (loading) return <div className="p-6">Loading...</div>;
-
+    const availableUnits =
+        selectedAlat?.units?.filter((u: any) => u.status === "tersedia").length || 0;
     return (
         <AppLayout>
             <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-xl font-bold mb-4 text-black">Kelola Alat</h1>
+                    <div className="flex gap-6">
+                        <Link href={"/admin/alat-unit"} className="bg-blue-500 flex gap-2 text-white px-4 py-2 mb-4 rounded "><Wrench size={20} /> Units</Link>
+                        {/* BUTTON */}
+                        <button
+                            onClick={() => setShowForm(!showForm)}
+                            className="bg-blue-500 text-white px-4 py-2 mb-4 rounded "
+                        >
+                            {showForm ? "Tutup Form" : "+"}
+                        </button>
+                    </div>
 
-                    {/* BUTTON */}
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-blue-500 text-white px-4 py-2 mb-4 rounded "
-                    >
-                        {showForm ? "Tutup Form" : "Tambah Alat"}
-                    </button>
                 </div>
 
 
@@ -175,15 +180,6 @@ export default function AlatPage() {
                                 className="border border-gray-300 p-2 col-span-2 text-gray-600"
                             />
 
-                            <input
-                                name="stok"
-                                type="number"
-                                placeholder="Stok"
-                                value={form.stok}
-                                onChange={handleChange}
-                                className="border border-gray-300 p-2 text-gray-600"
-                            />
-
                             <textarea
                                 name="deskripsi"
                                 placeholder="Deskripsi"
@@ -221,6 +217,11 @@ export default function AlatPage() {
                                     </div>
                                 </div>
                             ))}
+                        {alat.length === 0 && (
+                            <div className="p-6 text-center text-gray-400">
+                                Belum ada alat
+                            </div>
+                        )}
                     </div>
 
                     {/* DETAIL */}
@@ -234,28 +235,30 @@ export default function AlatPage() {
                                 >
                                     ✕
                                 </button>
+                                <div className="flex justify-center mb-4">
+                                    <img
+                                        src={
+                                            // selectedAlat.image ||
+                                            "/noalat.jpg"}
+                                        alt="alat"
+                                        className="w-48 h-48 object-cover rounded"
+                                    />
+                                </div>
 
-                                <img
-                                    src={
-                                        selectedAlat.image ||
-                                        "https://via.placeholder.com/300"
-                                    }
-                                    className="w-full h-48 object-cover rounded mb-3"
-                                />
 
-                                <div className="flex gap-2 mb-3">
+                                <div className="absolute top-4 right-4 flex gap-2">
                                     <button
                                         onClick={() => handleEdit(selectedAlat)}
-                                        className="bg-blue-500 text-white px-3 py-1 rounded"
+                                        className="bg-blue-500 text-white px-3 py-3 rounded "
                                     >
-                                        Edit
+                                        <Pencil size={15} />
                                     </button>
 
                                     <button
                                         onClick={() => handleDelete(selectedAlat.id)}
-                                        className="bg-red-500 text-white px-3 py-1 rounded"
+                                        className="bg-red-500 text-white px-3 py-3 rounded"
                                     >
-                                        Delete
+                                        <Trash2 size={15} />
                                     </button>
                                 </div>
 
@@ -268,15 +271,57 @@ export default function AlatPage() {
                                 </p>
 
                                 <p className="mt-2 text-black text-sm">
-                                    Stok: <b>{selectedAlat.stok}</b>
+                                    Stok: <b>{availableUnits}</b>
                                 </p>
 
                                 <p className="mt-2 text-sm text-gray-600">
                                     {selectedAlat.deskripsi || "-"}
                                 </p>
+
+                                <div className="mt-4">
+                                    <h3 className="font-semibold text-gray-700 mb-2">
+                                        Daftar Unit
+                                    </h3>
+
+                                    <div className="max-h-40 overflow-y-auto border rounded">
+                                        {selectedAlat.units.length === 0 && (
+                                            <div className="p-2 text-gray-400 text-sm font-bold">
+                                                -
+                                            </div>
+                                        )}
+
+                                        {selectedAlat.units.map((u: any) => (
+                                            <Link href={`/admin/alat-unit`}
+                                                key={u.id}
+                                                className="flex justify-between items-center px-3 py-2 border-b text-sm cursor-pointer hover:bg-gray-100"
+                                            >
+                                                <div>
+                                                    <div className="font-medium text-gray-800">
+                                                        {u.kodeUnit}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {u.kondisi}
+                                                    </div>
+                                                </div>
+
+                                                <span
+                                                    className={`text-xs px-2 py-1 rounded ${u.status === "tersedia"
+                                                        ? "bg-green-100 text-green-600"
+                                                        : u.status === "dipinjam"
+                                                            ? "bg-yellow-100 text-yellow-600"
+                                                            : "bg-red-100 text-red-600"
+                                                        }`}
+                                                >
+                                                    {u.status}
+                                                </span>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+
                             </div>
                         ) : (
-                            <div className="text-gray-400">
+                            <div className="text-gray-400 text-center w-full">
                                 Pilih alat untuk melihat detail
                             </div>
                         )}
