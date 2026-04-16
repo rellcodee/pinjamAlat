@@ -27,7 +27,7 @@ export async function createUser(
         const exists = await db.user.findFirst({
             where: {
                 username,
-                NOT: { id }
+                ...(id && { NOT: { id } })
             }
         });
 

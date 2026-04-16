@@ -9,6 +9,7 @@ export async function getAllPeminjaman() {
         include: {
             peminjam: true,
             petugas: true,
+            pengembalian: true,
             details: {
                 include: {
                     alatUnit: {
@@ -36,49 +37,53 @@ export async function createPeminjaman(
     actorId: number
 ) {
 
-    // 🔍 VALIDASI UNIT TERSEDIA
-    const units = await db.alatUnit.findMany({
-        where: {
-            id: { in: data.alatUnitIds },
-            status: "tersedia"
-        }
-    });
+    return await db.$transaction(async (tx) => {
 
-    if (units.length !== data.alatUnitIds.length) {
-        throw new Error("Ada unit yang tidak tersedia");
-    }
-
-    // ✅ CREATE HEADER + DETAIL
-    const peminjaman = await db.peminjaman.create({
-        data: {
-            peminjamId: data.peminjamId,
-            petugasId: null,
-            tanggalPinjam: new Date(data.tanggalPinjam),
-            tanggalRencanaKembali: new Date(data.tanggalRencanaKembali),
-            status: "pending",
-
-            details: {
-                create: data.alatUnitIds.map(id => ({
-                    alatUnitId: id
-                }))
+        // 🔍 VALIDASI
+        const units = await tx.alatUnit.findMany({
+            where: {
+                id: { in: data.alatUnitIds },
+                status: "tersedia"
             }
-        },
-        include: {
-            details: true
+        });
+
+        if (units.length !== data.alatUnitIds.length) {
+            throw new Error("Ada unit yang tidak tersedia");
         }
+
+        // ✅ CREATE
+        const peminjaman = await tx.peminjaman.create({
+            data: {
+                peminjamId: actorId,
+                petugasId: null,
+                tanggalPinjam: new Date(data.tanggalPinjam),
+                tanggalRencanaKembali: new Date(data.tanggalRencanaKembali),
+                status: "pending",
+                details: {
+                    create: data.alatUnitIds.map(id => ({
+                        alatUnitId: id
+                    }))
+                }
+            },
+            include: { details: true }
+        });
+
+        // 🔒 LOCK UNIT (SETELAH CREATE)
+        await tx.alatUnit.updateMany({
+            where: { id: { in: data.alatUnitIds } },
+            data: { status: "dipinjam" }
+        });
+
+        // 📝 LOG
+        await logActivity(
+            actorId,
+            "CREATE_PEMINJAMAN",
+            `Membuat peminjaman #${peminjaman.id} (${data.alatUnitIds.length} unit)`
+        );
+
+        return peminjaman;
     });
-
-
-    // 📝 LOG
-    await logActivity(
-        actorId,
-        "CREATE_PEMINJAMAN",
-        `Membuat peminjaman #${peminjaman.id} (${data.alatUnitIds.length} unit)`
-    );
-
-    return peminjaman;
 }
-
 /* =========================
    UPDATE STATUS
 ========================= */
@@ -178,4 +183,31 @@ export async function deletePeminjaman(
     );
 
     return { success: true };
+}
+
+// req
+export async function requestPengembalian(
+    id: number,
+    userId: number
+) {
+    const peminjaman = await db.peminjaman.findUnique({
+        where: { id }
+    });
+
+    if (!peminjaman) throw new Error("Data tidak ditemukan");
+
+    if (peminjaman.peminjamId !== userId) {
+        throw new Error("Bukan milik user");
+    }
+
+    if (peminjaman.status !== "disetujui") {
+        throw new Error("Tidak bisa request pengembalian");
+    }
+
+    return db.peminjaman.update({
+        where: { id },
+        data: {
+            status: "menunggu_pengembalian"
+        }
+    });
 }

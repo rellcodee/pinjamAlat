@@ -11,6 +11,7 @@ export async function getAllAlat() {
     });
     return alat.map(a => ({
         ...a,
+        alatUnit: a.units,
         stok: a.units.filter(u => u.status === "tersedia").length
     }));
 }

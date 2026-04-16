@@ -79,6 +79,7 @@ export default function UsersPage() {
             fetchUsers();
         } catch (err: any) {
             alert(err.message);
+            console.log("erorr bos", err)
         }
     };
 
@@ -86,7 +87,7 @@ export default function UsersPage() {
     const handleDelete = async (id: number) => {
         if (!confirm("Hapus user ini?")) return;
 
-        await fetch(`/api/users?id=${id}`, {
+        await fetch(`/api/user?id=${id}`, {
             method: "DELETE",
         });
 

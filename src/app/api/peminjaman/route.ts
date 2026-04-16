@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     if (!session)
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user.role !== "admin")
+    if (session.user.role == "petugas")
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
@@ -32,9 +32,12 @@ export async function POST(req: Request) {
         );
 
         return NextResponse.json(data);
-    } catch (error) {
+    } catch (error: any) {
         console.error("ERROR PEMINJAMAN:", error); // 🔥 INI PENTING
-        return NextResponse.json({ error: "Gagal membuat peminjaman" }, { status: 500 });
+        return NextResponse.json(
+            { error: error.message },
+            { status: 400 }
+        );
     }
 
 

@@ -49,14 +49,6 @@ export default function PeminjamanPage() {
 
     /* ================= ACTION ================= */
 
-    const updateStatus = async (id: number, status: string) => {
-        await fetch("/api/peminjaman", {
-            method: "PUT",
-            body: JSON.stringify({ id, status }),
-        });
-        fetchData();
-    };
-
     const deleteData = async (id: number) => {
         if (!confirm("Hapus peminjaman?")) return;
 
@@ -313,22 +305,6 @@ export default function PeminjamanPage() {
                                     ))}
                                 </div>
 
-                                {/* STATUS BUTTON */}
-                                <div className="flex gap-2 mt-4">
-                                    <button
-                                        onClick={() => updateStatus(selected.id, "disetujui")}
-                                        className="bg-green-500 text-white px-3 py-1 rounded"
-                                    >
-                                        Setujui
-                                    </button>
-
-                                    <button
-                                        onClick={() => updateStatus(selected.id, "ditolak")}
-                                        className="bg-yellow-500 text-white px-3 py-1 rounded"
-                                    >
-                                        Tolak
-                                    </button>
-                                </div>
 
                                 {/* PENGEMBALIAN */}
                                 <div className="mt-4 text-sm">

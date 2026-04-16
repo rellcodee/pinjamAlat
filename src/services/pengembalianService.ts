@@ -36,8 +36,11 @@ export async function createPengembalian(
 
     if (!peminjaman) throw new Error("Peminjaman tidak ditemukan");
 
-    if (peminjaman.status !== "disetujui") {
-        throw new Error("Belum disetujui");
+    if (
+        peminjaman.status !== "disetujui" &&
+        peminjaman.status !== "menunggu_pengembalian"
+    ) {
+        throw new Error("Tidak bisa dikembalikan");
     }
 
     const existing = await db.pengembalian.findUnique({

@@ -37,10 +37,11 @@ model Alat {
   kategoriId Int        @map("kategori_id")
   nama       String     @db.VarChar(100)
   deskripsi  String?    @db.Text
+  image      String?
+  stok       Int        @default(0)
   kategori   Kategori   @relation(fields: [kategoriId], references: [id], onUpdate: NoAction, map: "fk_alat_kategori")
   units      AlatUnit[]
-  image     String?
-  stok      Int     @default(0)
+
   @@index([kategoriId], map: "fk_alat_kategori")
   @@map("alat")
 }
@@ -64,7 +65,7 @@ model Peminjaman {
   petugasId             Int?               @map("petugas_id")
   tanggalPinjam         DateTime           @map("tanggal_pinjam") @db.Date
   tanggalRencanaKembali DateTime           @map("tanggal_rencana_kembali") @db.Date
-  status                StatusPeminjaman   @default(pending)
+  status                peminjaman_status?
   createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
   details               DetailPeminjaman[]
   peminjam              User               @relation("PeminjamRelation", fields: [peminjamId], references: [id], onUpdate: NoAction, map: "fk_peminjaman_peminjam")
@@ -133,9 +134,10 @@ enum StatusUnit {
   tidak_tersedia
 }
 
-enum StatusPeminjaman {
+enum peminjaman_status {
   pending
   disetujui
+  menunggu_pengembalian
   ditolak
   selesai
 }
