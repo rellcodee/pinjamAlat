@@ -1,4 +1,5 @@
-dashboard petugas
-card 1 yg sedang di pinjami, 2 card yg sudah selesai atau sudah mengembalikan.
-3. total denda.
-
+fitur notifikasi. 
+sekarang sedang tidak jalan fitur notifikasi
+admin ga dapet notification
+peminjam memiliki akses notifikasi mecakup alat yg baru di tambahkan admin.request peminjaman yg dia lakukan dan pengembalian yg sudah di approve petugas, yg terdapat jumlah denda.
+dan petugas memiliki akses notifikasi mencakup request peminjaman yg dilakukan peminjam, req pengembalian yg diajukan peminjam dan alat yg baru di tambahkan admin.

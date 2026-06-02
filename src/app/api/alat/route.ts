@@ -32,7 +32,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
-    const { nama, deskripsi, kategoriId, image, stok } = body;
+    const { nama, deskripsi, kategoriId, image, stok, merk } = body;
 
 
     try {
@@ -44,7 +44,8 @@ export async function POST(req: Request) {
                 stok,
                 kategori: {
                     connect: { id: kategoriId }
-                }
+                },
+                merk
             }
         });
         logActivity(Number(session.user.id), "CREATE_ALAT", `Membuat alat ${nama}`);

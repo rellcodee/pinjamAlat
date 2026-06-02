@@ -2,283 +2,195 @@
 
 import { useEffect, useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { Trash2, Pencil } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, UserPlus, Filter } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 export default function UsersPage() {
+    const router = useRouter();
     const [users, setUsers] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [roleFilter, setRoleFilter] = useState("all"); // 🌟 State baru untuk filter role
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
+    const usersPerPage = 10;
 
-    const [selectedUser, setSelectedUser] = useState<any | null>(null);
-    const [showForm, setShowForm] = useState(false);
-
-    const [form, setForm] = useState({
-        id: null as number | null,
-        nama: "",
-        username: "",
-        password: "",
-        role: "peminjam",
-    });
-
-    // 🔥 DEFAULT AVATAR
     const defaultAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-    // 🔄 FETCH
     const fetchUsers = async () => {
-        const res = await fetch("/api/user");
-        const data = await res.json();
-        setUsers(data);
-    };
-
-    const fetchAll = async () => {
-        await fetchUsers();
+        try {
+            const res = await fetch("/api/user");
+            if (!res.ok) throw new Error("Gagal mengambil data user");
+            const data = await res.json();
+            setUsers(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
-        fetchAll();
+        fetchUsers();
     }, []);
 
-    // auto select pertama
-    useEffect(() => {
-        if (users.length > 0 && !selectedUser) {
-            setSelectedUser(users[0]);
-        }
-    }, [users]);
+    // 🌟 Filter, Sort, Paginate (Logika diperbarui)
+    const filteredUsers = users
+        .filter((u) => u.role !== "admin") // Tetap sembunyikan admin utama
+        .filter((u) => {
+            // Filter berdasarkan pilihan Role dropdown
+            if (roleFilter === "all") return true;
+            return u.role === roleFilter;
+        })
+        .filter((u) => {
+            // Filter berdasarkan kolom pencarian nama/username
+            const searchLower = searchQuery.toLowerCase();
+            return (
+                u.nama.toLowerCase().includes(searchLower) ||
+                u.username.toLowerCase().includes(searchLower)
+            );
+        })
+        .sort((a, b) => a.nama.localeCompare(b.nama));
 
-    // INPUT
-    const handleChange = (e: any) => {
-        const { name, value } = e.target;
+    const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
+    const startIndex = (currentPage - 1) * usersPerPage;
+    const currentUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
-        setForm({
-            ...form,
-            [name]: value,
-        });
-    };
-
-    // SUBMIT
-    const handleSubmit = async () => {
-        try {
-            const method = form.id ? "PUT" : "POST";
-
-            const res = await fetch("/api/user", {
-                method,
-                body: JSON.stringify(form),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            if (form.id) {
-                setSelectedUser(data);
-            }
-            setForm({
-                id: null,
-                nama: "",
-                username: "",
-                password: "",
-                role: "peminjam",
-            });
-
-            setShowForm(false);
-            fetchUsers();
-        } catch (err: any) {
-            alert(err.message);
-            console.log("erorr bos", err)
-        }
-    };
-
-    // DELETE
-    const handleDelete = async (id: number) => {
-        if (!confirm("Hapus user ini?")) return;
-
-        await fetch(`/api/user?id=${id}`, {
-            method: "DELETE",
-        });
-
-        setSelectedUser(null);
-        fetchUsers();
-    };
-
-    // EDIT
-    const handleEdit = (u: any) => {
-        setShowForm(true);
-
-        setForm({
-            id: u.id,
-            nama: u.nama,
-            username: u.username,
-            password: "",
-            role: u.role,
-        });
-    };
     return (
         <AppLayout>
-            <div className="p-6">
-
+            <div className="p-6 max-w-6xl mx-auto">
                 {/* HEADER */}
-                <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-xl font-bold text-black">Users</h1>
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Manajemen User</h1>
+                        <p className="text-gray-500 text-sm mt-1">Daftar semua pengguna dalam sistem (Petugas & Peminjam)</p>
+                    </div>
 
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded"
-                    >
-                        {showForm ? "Tutup Form" : "Tambah User"}
-                    </button>
-                </div>
+                    {/* BARIS SELECTION & SEARCH */}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
 
-                {/* FORM */}
-                {showForm && (
-                    <div className="border p-4 rounded-xl mb-6 shadow bg-white">
-                        <h2 className="font-semibold mb-2 text-gray-700">
-                            {form.id ? "Edit User" : "Tambah User"}
-                        </h2>
-
-                        <div className="grid grid-cols-2 gap-2">
-                            <input
-                                name="nama"
-                                placeholder="Nama"
-                                value={form.nama}
-                                onChange={handleChange}
-                                className="border border-gray-300 p-2 text-gray-600"
-                            />
-
-                            <input
-                                name="username"
-                                placeholder="Username"
-                                value={form.username}
-                                onChange={handleChange}
-                                className="border border-gray-300 p-2 text-gray-600"
-                            />
-
-                            <input
-                                name="password"
-                                type="password"
-                                placeholder="Password"
-                                value={form.password}
-                                onChange={handleChange}
-                                className="border border-gray-300 p-2 text-gray-600"
-                            />
-
+                        {/* 🌟 FILTER DROPDOWN ROLE */}
+                        <div className="relative w-full sm:w-44">
                             <select
-                                name="role"
-                                value={form.role}
-                                onChange={handleChange}
-                                className="border border-gray-300 p-2 text-gray-600"
+                                value={roleFilter}
+                                onChange={(e) => {
+                                    setRoleFilter(e.target.value);
+                                    setCurrentPage(1); // Reset halaman ke 1 saat filter berubah
+                                }}
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-800 appearance-none cursor-pointer font-medium"
                             >
-                                <option value="admin">Admin</option>
+                                <option value="all">Semua Role</option>
                                 <option value="petugas">Petugas</option>
                                 <option value="peminjam">Peminjam</option>
                             </select>
+                            <Filter className="absolute left-3 top-2.5 text-gray-400 pointer-events-none" size={16} />
                         </div>
 
-                        <button
-                            onClick={handleSubmit}
-                            className="mt-3 bg-blue-500 text-white px-4 py-2 rounded"
+                        {/* INPUT SEARCH */}
+                        <div className="relative w-full sm:w-64">
+                            <input
+                                type="text"
+                                placeholder="Cari nama / username..."
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1); // Reset halaman ke 1 saat mengetik
+                                }}
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-gray-800"
+                            />
+                            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                        </div>
+
+                        {/* BUTTON TAMBAH */}
+                        <Link
+                            href="/admin/user/form"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm font-medium whitespace-nowrap text-sm w-full sm:w-auto"
                         >
-                            {form.id ? "Update" : "Tambah"}
-                        </button>
+                            <UserPlus size={18} />
+                            Tambah
+                        </Link>
+                    </div>
+                </div>
+
+                {/* USER LIST */}
+                <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : currentUsers.length > 0 ? (
+                        <div className="divide-y divide-gray-100">
+                            {currentUsers.map((user) => (
+                                <div
+                                    key={user.id}
+                                    onClick={() => router.push(`/admin/user/${user.id}`)}
+                                    className="p-4 flex items-center justify-between hover:bg-gray-50/80 cursor-pointer transition-colors"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-100 flex-shrink-0">
+                                            <img
+                                                src={user.role === "peminjam" ? "/nerd.png" : "/kumis.png"}
+                                                alt={user.nama}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.currentTarget.src = defaultAvatar }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">{user.nama}</h3>
+                                            <p className="text-gray-500 text-sm">@{user.username}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${user.role === 'petugas'
+                                            ? 'bg-green-50 text-green-700 border-green-200'
+                                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                                            }`}>
+                                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-12 text-center flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <Search className="text-gray-400" size={24} />
+                            </div>
+                            <h3 className="text-gray-900 font-medium mb-1">Tidak ada user ditemukan</h3>
+                            <p className="text-gray-500 text-sm">Coba sesuaikan kata kunci pencarian atau filter role Anda.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* PAGINATION */}
+                {totalPages > 1 && (
+                    <div className="flex justify-between items-center mt-6">
+                        <p className="text-sm text-gray-500 rounded-lg px-2 py-1 bg-white">
+                            Menampilkan User <span className="font-medium text-gray-900">{startIndex + 1}</span> - <span className="font-medium text-gray-900">{Math.min(startIndex + usersPerPage, filteredUsers.length)}</span>
+                        </p>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <span className="text-sm font-medium text-gray-700 px-2">
+                                Halaman {currentPage} dari {totalPages}
+                            </span>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
                     </div>
                 )}
 
-                {/* 🔥 MASTER DETAIL */}
-                <div className="flex gap-4">
-
-                    {/* TABLE */}
-                    <div className={`${selectedUser ? "w-1/1" : "w-full"} border bg-white rounded-xl overflow-hidden`}>
-                        <table className="w-full text-sm">
-                            <thead className="bg-white border-b">
-                                <tr>
-                                    <th className="p-3 text-left text-gray-700">Nama</th>
-                                    <th className="p-3 text-left text-gray-700">Username</th>
-                                    <th className="p-3 text-left text-gray-700">Role</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {[...users]
-                                    .sort((a, b) => a.nama.localeCompare(b.nama))
-                                    .map((u, i) => (
-                                        <tr
-                                            key={u.id}
-                                            onClick={() => setSelectedUser(u)}
-                                            className={`
-                        cursor-pointer
-                        ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                        hover:bg-blue-50
-                        ${selectedUser?.id === u.id ? "bg-blue-50" : ""}
-                      `}
-                                        >
-                                            <td className="p-3 font-medium text-gray-700">{u.nama}</td>
-                                            <td className="p-3 text-gray-700">{u.username}</td>
-                                            <td className="p-3 capitalize text-gray-700">{u.role}</td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
-
-                        {users.length === 0 && (
-                            <div className="p-6 text-center text-gray-400">
-                                Belum ada user
-                            </div>
-                        )}
-                    </div>
-
-                    {/* DETAIL */}
-                    <div className={`${selectedUser ? "w-2/3" : "hidden md:flex w-2/3"} items-center justify-center`}>
-                        {selectedUser ? (
-                            <div className="border rounded-xl p-4 shadow relative bg-white w-full">
-
-                                {/* CLOSE */}
-                                <button
-                                    onClick={() => setSelectedUser(null)}
-                                    className="absolute top-2 right-2"
-                                >
-                                    ✕
-                                </button>
-
-                                {/* ACTION */}
-                                <div className="absolute top-4 right-4 flex gap-2">
-                                    <button
-                                        onClick={() => handleEdit(selectedUser)}
-                                        className="bg-blue-500 text-white px-3 py-3 rounded"
-                                    >
-                                        <Pencil size={15} />
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleDelete(selectedUser.id)}
-                                        className="bg-red-500 text-white px-3 py-3 rounded"
-                                    >
-                                        <Trash2 size={15} />
-                                    </button>
-                                </div>
-
-                                {/* AVATAR */}
-                                <img
-                                    src={defaultAvatar}
-                                    className="w-full h-45 object-contain rounded mb-3 mt-8"
-                                />
-
-
-
-                                {/* INFO */}
-                                <h2 className="text-lg font-bold text-black">
-                                    {selectedUser.nama}
-                                </h2>
-
-                                <p className="text-gray-500">
-                                    Username : {selectedUser.username}
-                                </p>
-
-                                <p className="mt-2 text-sm text-black">
-                                    Role: <b className="capitalize">{selectedUser.role}</b>
-                                </p>
-
-                            </div>
-                        ) : (
-                            <div className="text-gray-400 text-center w-full">
-                                Pilih user untuk melihat detail
-                            </div>
-                        )}
-                    </div>
-                </div>
             </div>
         </AppLayout>
     );

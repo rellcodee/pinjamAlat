@@ -4,12 +4,17 @@ import {
     getAllPeminjaman,
     createPeminjaman,
     updateStatusPeminjaman,
+    updatePeminjaman,
     deletePeminjaman
 } from "@/services/peminjamanService";
 
+
 /* GET */
-export async function GET() {
-    const data = await getAllPeminjaman();
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get("page") || 1);
+    const limit = Number(searchParams.get("limit") || 10);
+    const data = await getAllPeminjaman(page, limit);
     return NextResponse.json(data);
 }
 
@@ -50,15 +55,31 @@ export async function PUT(req: Request) {
     if (!session)
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const body = await req.json();
+    try {
+        const body = await req.json();
 
-    const data = await updateStatusPeminjaman(
-        body.id,
-        body.status,
-        Number(session.user.id)
-    );
+        // Jika ada alatUnitIds, berarti ini update data lengkap (Admin Override)
+        if (body.alatUnitIds) {
+            const data = await updatePeminjaman(
+                Number(body.id),
+                body,
+                Number(session.user.id)
+            );
+            return NextResponse.json(data);
+        }
 
-    return NextResponse.json(data);
+        const data = await updateStatusPeminjaman(
+            Number(body.id),
+            body.status,
+            Number(session.user.id)
+        );
+
+        return NextResponse.json(data);
+    }
+    catch (err: any) {
+        console.error("ERROR UPDATE PEMINJAMAN:", err);
+        return NextResponse.json({ error: err.message }, { status: 400 });
+    }
 }
 
 /* DELETE */

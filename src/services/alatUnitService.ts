@@ -6,6 +6,9 @@ import { StatusUnit, Kondisi } from "@/generated/prisma/enums";
 // GET ALL
 export async function getAllAlatUnit() {
     return db.alatUnit.findMany({
+        where: {
+            deletedAt: null
+        },
         include: {
             alat: true
         },
@@ -15,12 +18,11 @@ export async function getAllAlatUnit() {
     });
 }
 
-function generateKode(nama: string, lastNumber: number) {
-    const words = nama.split(" ");
-    const prefix = words.map(w => w[0]).join("").toUpperCase();
-    const number = String(lastNumber + 1).padStart(3, "0");
-
-    return `${prefix}${number}`;
+function generateAlatAbbr(nama: string) {
+    // Take first letter of each word, max 2 chars, uppercase
+    const words = nama.trim().split(/\s+/);
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return words.slice(0, 2).map(w => w[0]).join("").toUpperCase();
 }
 
 export async function createAlatUnit(
@@ -28,16 +30,23 @@ export async function createAlatUnit(
     currentUserId: number
 ) {
     const alat = await db.alat.findUnique({
-        where: { id: alatId }
+        where: { id: alatId },
+        include: { kategori: true }
     });
 
     if (!alat) throw new Error("Alat tidak ditemukan");
 
+    const kategoriKode = alat.kategori?.kode || "GEN";
+    const alatAbbr = generateAlatAbbr(alat.nama);
+    const prefix = `${kategoriKode}-${alatAbbr}`;
+
+    // Count existing units for this alat to determine next index
     const count = await db.alatUnit.count({
         where: { alatId: alatId }
     });
 
-    const kode = generateKode(alat.nama, count);
+    const number = String(count + 1).padStart(3, "0");
+    const kode = `${prefix}${number}`;
 
     const unit = await db.alatUnit.create({
         data: {
@@ -110,8 +119,13 @@ export async function deleteAlatUnit(
 
     if (!unit) throw new Error("Unit tidak ditemukan");
 
-    const deleted = await db.alatUnit.delete({
-        where: { id }
+    const deleted = await db.alatUnit.update({
+        where: { id },
+        data: {
+            deletedAt: new Date(),
+            status: "tidak_tersedia"
+        },
+
     });
 
     await logActivity(

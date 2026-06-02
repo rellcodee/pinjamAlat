@@ -2,293 +2,165 @@
 
 import { useEffect, useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
+import Link from "next/link";
+import { Plus, Search, ArchiveRestore, ChevronRight, ChevronLeft, CheckCircle2 } from "lucide-react";
 
 export default function PengembalianPage() {
     const [data, setData] = useState<any[]>([]);
-    const [selected, setSelected] = useState<any>(null);
-    const [peminjaman, setPeminjaman] = useState<any[]>([]);
+    const [meta, setMeta] = useState({ totalPages: 1, total: 0 });
+    const [isLoading, setIsLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
 
-    const [showForm, setShowForm] = useState(false);
-
-    const [form, setForm] = useState({
-        id: null as number | null,
-        peminjamanId: 0,
-        tanggalKembaliAktual: "",
-    });
-
-    // 🔥 FETCH
-    const fetchData = async () => {
-        const res = await fetch("/api/pengembalian");
-        const json = await res.json();
-        setData(json);
-    };
-
-    const fetchPeminjaman = async () => {
-        const res = await fetch("/api/peminjaman");
-        const json = await res.json();
-
-        // hanya yg belum dikembalikan
-        const filtered = json.filter((p: any) => !p.pengembalian);
-        setPeminjaman(filtered);
-    };
-
-    const fetchAll = async () => {
-        await Promise.all([fetchData(), fetchPeminjaman()]);
-    };
-
-    useEffect(() => {
-        fetchAll();
-    }, []);
-
-    // 🔥 INPUT
-    const handleChange = (e: any) => {
-        const { name, value } = e.target;
-
-        setForm({
-            ...form,
-            [name]: name === "peminjamanId" ? Number(value) : value,
-        });
-    };
-
-    // 🔥 SUBMIT
-    const handleSubmit = async () => {
+    const fetchData = async (p: number) => {
+        setIsLoading(true);
         try {
-
-            if (!form.tanggalKembaliAktual) {
-                alert("Tanggal kembali wajib diisi");
-                return;
-            }
-
-            if (!form.peminjamanId) {
-                alert("Pilih peminjaman dulu");
-                return;
-            }
-            const method = form.id ? "PUT" : "POST";
-            console.log("form", form)
-
-            const res = await fetch("/api/pengembalian", {
-                method,
-                body: JSON.stringify(form),
-            });
-
+            const res = await fetch(`/api/pengembalian?page=${p}&limit=10`);
             const json = await res.json();
-            if (!res.ok) throw new Error(json.error);
-
-            setShowForm(false);
-            setForm({
-                id: null,
-                peminjamanId: 0,
-                tanggalKembaliAktual: "",
-            });
-            fetchAll();
-        } catch (err: any) {
-            alert(err.message);
-            console.log("error nih", err)
+            setData(json.data || json);
+            setMeta(json.meta || { totalPages: 1, total: (json.data || json).length });
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // 🔥 DELETE
-    const handleDelete = async (id: number) => {
-        if (!confirm("⚠️ Ini akan rollback data. Lanjut?")) return;
+    useEffect(() => {
+        fetchData(page);
+    }, [page]);
 
-        await fetch(`/api/pengembalian?id=${id}`, {
-            method: "DELETE",
-        });
-
-        setSelected(null);
-        fetchAll();
-    };
-
-    // 🔥 EDIT
-    const handleEdit = (p: any) => {
-        setShowForm(true);
-
-        setForm({
-            id: p.id,
-            peminjamanId: p.peminjamanId,
-            tanggalKembaliAktual: p.tanggalKembaliAktual?.split("T")[0],
-        });
-    };
+    const filteredData = data.filter(p =>
+        p.peminjaman?.peminjam?.nama?.toLowerCase().includes(search.toLowerCase()) ||
+        p.id.toString().includes(search)
+    );
 
     return (
         <AppLayout>
-            <div className="p-6">
-
-                {/* HEADER */}
-                <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-xl font-bold text-black">
-                        Pengembalian
-                    </h1>
-
-                    <button
-                        onClick={() => setShowForm(!showForm)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded"
-                    >
-                        {showForm ? "Tutup Form" : "+ Pengembalian"}
-                    </button>
+            <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 border border-blue-100">
+                            <ArchiveRestore size={24} />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Kelola Pengembalian</h1>
+                            <p className="text-gray-500 text-sm mt-1">Total <span className="font-semibold text-gray-700">{meta.total}</span> transaksi pengembalian.</p>
+                        </div>
+                    </div>
+                    <div className="flex w-full md:w-auto items-center gap-3">
+                        <div className="relative flex-1 md:min-w-[250px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Cari peminjam / ID..."
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-transparent rounded-xl focus:ring-2 focus:ring-green-600 focus:bg-white transition-all text-sm h-10 outline-none"
+                            />
+                        </div>
+                        <Link
+                            href="/admin/pengembalian/form"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm h-10 shrink-0 font-medium text-sm"
+                        >
+                            <Plus size={18} />
+                            <span className="hidden sm:inline">Proses Pengembalian</span>
+                        </Link>
+                    </div>
                 </div>
 
-                {/* FORM */}
-                {showForm && (
-                    <div className="border p-4 rounded-xl mb-6 shadow bg-white">
-                        <h2 className="font-semibold mb-3 text-gray-700">
-                            {form.id ? "Edit Pengembalian" : "Tambah Pengembalian"}
-                        </h2>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="peminjamanId" className="text-gray-700 font-semibold">Peminjaman</label>
-                                {/* PEMINJAMAN */}
-                                <select
-                                    name="peminjamanId"
-                                    value={form.peminjamanId}
-                                    onChange={handleChange}
-                                    className="border p-2 text-gray-700"
-                                >
-                                    <option value={0}>Pilih Peminjaman</option>
-                                    {peminjaman.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                            #{p.id} - {p.peminjam?.nama}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label htmlFor="peminjamanId" className="text-gray-700 font-semibold">Tanggal Kembali</label>
-
-                                {/* TANGGAL */}
-                                <input
-                                    type="date"
-                                    name="tanggalKembaliAktual"
-                                    value={form.tanggalKembaliAktual}
-                                    onChange={handleChange}
-                                    className="border p-2 text-gray-700"
-                                />
-                            </div>
-
-                        </div>
-
-                        <button
-                            onClick={handleSubmit}
-                            className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
-                        >
-                            {form.id ? "Update" : "Simpan"}
-                        </button>
-                    </div>
-                )}
-
-                {/* MASTER DETAIL */}
-                <div className="flex gap-4">
-
-                    {/* LIST */}
-                    <div className="w-1/3 border rounded-xl bg-white">
-                        {data.length === 0 && (
-                            <p className="text-gray-500 p-4">Belum ada data Pengembalian !</p>
-                        )}
-                        {data.map((p) => (
-                            <div
-                                key={p.id}
-                                onClick={() => setSelected(p)}
-                                className={`p-3 border-b cursor-pointer ${selected?.id === p.id ? "bg-blue-50" : ""
-                                    }`}
-                            >
-                                <div className="font-semibold text-black">
-                                    #{p.id}
-                                </div>
-
-                                <div className="text-sm text-gray-500">
-                                    {p.peminjaman?.peminjam?.nama}
-                                </div>
-
-                                <div className="text-xs text-gray-400">
-                                    Denda: Rp {p.totalDenda}
-                                </div>
-                            </div>
-                        ))}
+                {/* Table */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50/50 text-gray-600 font-medium border-b border-gray-100">
+                                <tr>
+                                    <th className="p-4 pl-6 text-center w-20">ID</th>
+                                    <th className="p-4">Peminjam</th>
+                                    <th className="p-4">Tanggal Kembali</th>
+                                    <th className="p-4 text-center">Keterlambatan</th>
+                                    <th className="p-4 text-right">Denda</th>
+                                    <th className="p-4 text-center">Status Denda</th>
+                                    <th className="p-4 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={7} className="p-8 text-center text-gray-400">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : filteredData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="p-12 text-center text-gray-500">
+                                            <ArchiveRestore size={48} className="mx-auto mb-3 text-gray-300" />
+                                            Tidak ada data pengembalian.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredData.map((p) => (
+                                        <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
+                                            <td className="p-4 pl-6 text-center font-medium text-gray-500">#{p.id}</td>
+                                            <td className="p-4 font-medium text-gray-800">{p.peminjaman?.peminjam?.nama || "Unknown"}</td>
+                                            <td className="p-4 text-gray-600">{new Date(p.tanggalKembaliAktual).toLocaleDateString("id-ID", { dateStyle: "medium" })}</td>
+                                            <td className="p-4 text-center">
+                                                {p.jumlahHariTerlambat > 0 ? (
+                                                    <span className="text-red-500 text-xs font-medium bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                                                        Telat {p.jumlahHariTerlambat} hari
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded border border-green-100">Tepat Waktu</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-right font-mono text-sm font-semibold text-gray-700">
+                                                {p.totalDenda > 0 ? `Rp ${p.totalDenda.toLocaleString("id-ID")}` : "-"}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                {p.totalDenda === 0 ? (
+                                                    <span className="text-gray-400 text-xs">—</span>
+                                                ) : p.dendaLunas ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-600 border border-green-100">
+                                                        <CheckCircle2 size={12} /> Lunas
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-100">
+                                                        Belum Lunas
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <Link href={`/admin/pengembalian/${p.id}`}
+                                                    className="inline-flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:text-green-600 hover:border-green-200 hover:bg-green-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-all gap-1.5 shadow-sm">
+                                                    Detail <ChevronRight size={14} />
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
 
-                    {/* DETAIL */}
-                    <div className="w-2/3">
-
-                        {!selected && (
-                            <div className="text-gray-400 text-center">
-                                Pilih data pengembalian
-                            </div>
-                        )}
-
-                        {selected && (
-                            <div className="border rounded-xl p-4 bg-white shadow relative">
-
-                                {/* CLOSE */}
-                                <button
-                                    onClick={() => setSelected(null)}
-                                    className="absolute top-2 right-2"
-                                >
-                                    ✕
+                    {/* Pagination */}
+                    {meta.totalPages > 1 && (
+                        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                            <p className="text-sm text-gray-500">Halaman <span className="font-medium text-gray-700">{page}</span> dari <span className="font-medium text-gray-700">{meta.totalPages}</span></p>
+                            <div className="flex gap-2">
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors">
+                                    <ChevronLeft size={15} /> Prev
                                 </button>
-
-                                {/* ACTION */}
-                                <div className="flex gap-2 mb-3 justify-end">
-                                    <button
-                                        onClick={() => handleEdit(selected)}
-                                        className="bg-blue-500 text-white px-3 py-1 rounded"
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                        onClick={() => handleDelete(selected.id)}
-                                        className="bg-red-500 text-white px-3 py-1 rounded"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-
-                                <h2 className="text-lg font-bold text-black mb-2">
-                                    Pengembalian #{selected.id}
-                                </h2>
-
-                                <p className="text-sm text-gray-600">
-                                    Peminjam: {selected.peminjaman?.peminjam?.nama}
-                                </p>
-
-                                <p className="text-sm text-gray-600">
-                                    Tanggal Kembali: {selected.tanggalKembaliAktual?.split("T")[0]}
-                                </p>
-
-                                <p className="text-sm text-gray-600">
-                                    Terlambat: {selected.jumlahHariTerlambat} hari
-                                </p>
-
-                                <p className="text-sm text-red-600 font-semibold">
-                                    Denda: Rp {selected.totalDenda}
-                                </p>
-
-                                {/* UNIT */}
-                                <div className="mt-4">
-                                    <h3 className="font-semibold text-gray-700 mb-2">
-                                        Unit Dikembalikan
-                                    </h3>
-
-                                    {selected.peminjaman?.details.map((d: any) => (
-                                        <div
-                                            key={d.id}
-                                            className="border p-2 rounded mb-2 text-sm"
-                                        >
-                                            <div className="font-medium text-black">
-                                                {d.alatUnit.kodeUnit}
-                                            </div>
-
-                                            <div className="text-gray-500">
-                                                {d.alatUnit.alat.nama}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
+                                <button onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))} disabled={page === meta.totalPages}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors">
+                                    Next <ChevronRight size={15} />
+                                </button>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </AppLayout>

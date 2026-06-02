@@ -1,25 +1,48 @@
 import { db } from "@/lib/db";
 import { logActivity } from "./logService";
+import { getPengaturan } from "./pengaturanService";
+import { createNotifications } from "@/lib/notification";
 
-export async function getAllPengembalian() {
-    return db.pengembalian.findMany({
-        include: {
-            peminjaman: {
-                include: {
-                    peminjam: true,
-                    details: {
-                        include: {
-                            alatUnit: {
-                                include: { alat: true }
+function calculateHariTelat(kembali: Date, rencana: Date) {
+    const d1 = new Date(kembali);
+    d1.setHours(0, 0, 0, 0);
+    const d2 = new Date(rencana);
+    d2.setHours(0, 0, 0, 0);
+
+    const diff = d1.getTime() - d2.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : 0;
+}
+
+export async function getAllPengembalian(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+        db.pengembalian.findMany({
+            include: {
+                peminjaman: {
+                    include: {
+                        peminjam: true,
+                        details: {
+                            include: {
+                                alatUnit: {
+                                    include: { alat: true }
+                                }
                             }
                         }
                     }
-                }
+                },
+                petugas: true
             },
-            petugas: true
-        },
-        orderBy: { id: "desc" }
-    });
+            orderBy: { id: "desc" },
+            skip,
+            take: limit,
+        }),
+        db.pengembalian.count()
+    ]);
+    return {
+        data,
+        meta: { total, page, limit, totalPages: Math.ceil(total / limit) }
+    };
 }
 
 // CREATE
@@ -54,40 +77,56 @@ export async function createPengembalian(
     if (isNaN(kembali.getTime())) {
         throw new Error("Tanggal kembali tidak valid");
     }
-    let hariTelat = Math.ceil(
-        (kembali.getTime() - rencana.getTime()) / (1000 * 60 * 60 * 24)
-    );
 
-    if (hariTelat < 0) hariTelat = 0;
+    const hariTelat = calculateHariTelat(kembali, rencana);
 
-    const totalDenda = hariTelat * 5000;
+    const dendaSetting = await getPengaturan("denda_per_hari");
 
-    const pengembalian = await db.pengembalian.create({
-        data: {
-            peminjamanId,
-            petugasId: actorId,
-            tanggalKembaliAktual: kembali,
-            jumlahHariTerlambat: hariTelat,
-            totalDenda
-        }
-    });
+    const tarifDenda = dendaSetting ? Number(dendaSetting) : 5000;
 
-    const unitIds = peminjaman.details.map(d => d.alatUnitId);
+    const totalDenda = hariTelat * tarifDenda;
 
-    await db.alatUnit.updateMany({
-        where: { id: { in: unitIds } },
-        data: { status: "tersedia" }
-    });
+    const pengembalian = await db.$transaction(async (tx) => {
+        const pengembalian = await tx.pengembalian.create({
+            data: {
+                peminjamanId,
+                petugasId: actorId,
+                tanggalKembaliAktual: kembali,
+                jumlahHariTerlambat: hariTelat,
+                totalDenda
+            }
+        });
 
-    await db.peminjaman.update({
-        where: { id: peminjamanId },
-        data: { status: "selesai" }
+        const unitIds = peminjaman.details.map(d => d.alatUnitId);
+
+        await tx.alatUnit.updateMany({
+            where: { id: { in: unitIds } },
+            data: { status: "tersedia" }
+        });
+
+        await tx.peminjaman.update({
+            where: { id: peminjamanId },
+            data: { status: "selesai" }
+        });
+
+        return pengembalian;
     });
 
     await logActivity(
         actorId,
         "CREATE_PENGEMBALIAN",
         `Pengembalian #${peminjamanId} | Denda ${totalDenda}`
+    );
+
+    // Notify borrower about return
+    await createNotifications(
+        [peminjaman.peminjamId],
+        totalDenda > 0 ? "Pengembalian Selesai — Ada Denda" : "Pengembalian Selesai ✅",
+        totalDenda > 0
+            ? `Alat berhasil dikembalikan. Denda keterlambatan: Rp ${totalDenda.toLocaleString("id-ID")}. Segera lunaskan ke petugas.`
+            : `Alat berhasil dikembalikan tepat waktu. Terima kasih!`,
+        totalDenda > 0 ? "WARNING" : "SUCCESS",
+        `/peminjam/pengembalian/${pengembalian.id}`
     );
 
     return pengembalian;
@@ -97,7 +136,7 @@ export async function createPengembalian(
 export async function updatePengembalian(
     id: number,
     data: {
-        tanggalKembaliAktual?: Date;
+        tanggalKembaliAktual?: string | Date;
     },
     actorId: number
 ) {
@@ -111,32 +150,47 @@ export async function updatePengembalian(
     if (!existing) throw new Error("Data tidak ditemukan");
 
     // ❗ hitung ulang denda
-    let terlambat = 0;
-    let denda = 0;
+    let terlambat = existing.jumlahHariTerlambat;
+    let denda = existing.totalDenda;
+    let finalTanggal = existing.tanggalKembaliAktual;
 
     if (data.tanggalKembaliAktual) {
-        const diff =
-            (new Date(data.tanggalKembaliAktual).getTime() -
-                new Date(existing.peminjaman.tanggalRencanaKembali).getTime()) /
-            (1000 * 60 * 60 * 24);
+        finalTanggal = new Date(data.tanggalKembaliAktual);
+        if (isNaN(finalTanggal.getTime())) {
+            throw new Error("Tanggal kembali tidak valid");
+        }
 
-        terlambat = diff > 0 ? Math.floor(diff) : 0;
-        denda = terlambat * 5000;
+        terlambat = calculateHariTelat(
+            finalTanggal,
+            new Date(existing.peminjaman.tanggalRencanaKembali)
+        );
+
+        const dendaSetting = await getPengaturan("denda_per_hari");
+        const tarifDenda = dendaSetting ? Number(dendaSetting) : 5000;
+        denda = terlambat * tarifDenda;
+    }
+
+    // ❗ logic reset lunas (sesuai request user)
+    // Jika denda berubah, kita reset. Jika denda jadi 0, otomatis lunas.
+    let lunasStatus = existing.dendaLunas;
+    if (denda !== existing.totalDenda) {
+        lunasStatus = (denda === 0);
     }
 
     const updated = await db.pengembalian.update({
         where: { id },
         data: {
-            tanggalKembaliAktual: data.tanggalKembaliAktual,
+            tanggalKembaliAktual: finalTanggal,
             jumlahHariTerlambat: terlambat,
-            totalDenda: denda
+            totalDenda: denda,
+            dendaLunas: lunasStatus
         }
     });
 
     await logActivity(
         actorId,
         "UPDATE_PENGEMBALIAN",
-        `Update pengembalian #${id}`
+        `Update pengembalian #${id} | Denda: ${denda} | Lunas: ${lunasStatus}`
     );
 
     return updated;
@@ -161,22 +215,24 @@ export async function deletePengembalian(
 
     if (!existing) throw new Error("Data tidak ditemukan");
 
-    // ❗ rollback unit
-    const unitIds = existing.peminjaman.details.map(d => d.alatUnitId);
+    await db.$transaction(async (tx) => {
+        // ❗ rollback unit
+        const unitIds = existing.peminjaman.details.map(d => d.alatUnitId);
 
-    await db.alatUnit.updateMany({
-        where: { id: { in: unitIds } },
-        data: { status: "dipinjam" } // balik ke sebelumnya
-    });
+        await tx.alatUnit.updateMany({
+            where: { id: { in: unitIds } },
+            data: { status: "dipinjam" } // balik ke sebelumnya
+        });
 
-    // ❗ rollback peminjaman
-    await db.peminjaman.update({
-        where: { id: existing.peminjamanId },
-        data: { status: "disetujui" }
-    });
+        // ❗ rollback peminjaman
+        await tx.peminjaman.update({
+            where: { id: existing.peminjamanId },
+            data: { status: "disetujui" }
+        });
 
-    await db.pengembalian.delete({
-        where: { id }
+        await tx.pengembalian.delete({
+            where: { id }
+        });
     });
 
     await logActivity(
@@ -186,4 +242,26 @@ export async function deletePengembalian(
     );
 
     return true;
+}
+
+// TANDAI LUNAS
+export async function tandaiLunas(
+    id: number,
+    actorId: number
+) {
+    const existing = await db.pengembalian.findUnique({ where: { id } });
+    if (!existing) throw new Error("Data tidak ditemukan");
+
+    const updated = await db.pengembalian.update({
+        where: { id },
+        data: { dendaLunas: true }
+    });
+
+    await logActivity(
+        actorId,
+        "LUNAS_DENDA",
+        `Denda pengembalian #${id} ditandai Lunas`
+    );
+
+    return updated;
 }

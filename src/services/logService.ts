@@ -1,44 +1,60 @@
 import { db } from "@/lib/db";
 
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+export async function getAllLogs(page = 1, limit = 10, search = "", role = "", date = "") {
+    const skip = (page - 1) * limit;
 
-export async function GET() {
-    const session = await auth();
+    const where: any = {};
 
-    // 🔐 PROTECT ADMIN ONLY
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (search) {
+        where.keterangan = { contains: search };
     }
 
-    if (session.user.role !== "admin") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (role) {
+        where.user = { role };
     }
 
-    try {
-        const logs = await db.logAktivitas.findMany({
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        nama: true,
-                        username: true,
-                    }
+    if (date) {
+        // Assume date is 'YYYY-MM-DD'
+        const startDate = new Date(date);
+        startDate.setHours(0, 0, 0, 0);
+
+        const endDate = new Date(date);
+        endDate.setHours(23, 59, 59, 999);
+
+        where.waktu = {
+            gte: startDate,
+            lte: endDate
+        };
+    }
+
+    const data = await db.logAktivitas.findMany({
+        where,
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    nama: true,
+                    username: true,
+                    role: true
                 }
-            },
-            orderBy: {
-                waktu: "desc"
-            },
-            take: 50 // 🔥 LIMIT biar ringan
-        });
+            }
+        },
+        orderBy: { waktu: "desc" },
+        skip,
+        take: limit,
+    });
 
-        return NextResponse.json(logs);
-    } catch (error: any) {
-        return NextResponse.json(
-            { error: error.message },
-            { status: 500 }
-        );
-    }
+    const total = await db.logAktivitas.count({ where });
+
+    return {
+        data,
+        meta: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        }
+    };
 }
 
 export async function logActivity(
@@ -46,18 +62,6 @@ export async function logActivity(
     aksi: string,
     keterangan?: string
 ) {
-
-    const session = await auth();
-
-    // 🔐 PROTECT ADMIN ONLY
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (session.user.role !== "admin") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     try {
         return await db.logAktivitas.create({
             data: {
@@ -66,12 +70,8 @@ export async function logActivity(
                 keterangan,
             },
         });
+    } catch (err: any) {
+        console.error("Failed to append logActivity:", err);
+        throw new Error(err.message);
     }
-    catch (err: any) {
-        return NextResponse.json(
-            { error: err.message },
-            { status: 500 }
-        );
-    }
-
 }

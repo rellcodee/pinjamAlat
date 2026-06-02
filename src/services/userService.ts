@@ -5,11 +5,34 @@ import { logActivity } from "./logService";
 // GET ALL USERS
 export async function getAllUsers() {
     return await db.user.findMany({
+        where: {
+            deletedAt: null
+        },
         select: {
             id: true,
             nama: true,
             username: true,
-            role: true
+            role: true,
+            kelas: true,
+            noTelp: true
+        }
+    });
+}
+
+// GET USER BY ID
+export async function getUserById(id: number) {
+    return await db.user.findFirst({
+        where: {
+            id,
+            deletedAt: null
+        },
+        select: {
+            id: true,
+            nama: true,
+            username: true,
+            role: true,
+            kelas: true,
+            noTelp: true
         }
     });
 }
@@ -21,6 +44,8 @@ export async function createUser(
     username: string,
     password: string,
     role: Role,
+    kelas: string,
+    noTelp: string,
     currentUserId: number
 ) {
     try {
@@ -39,7 +64,9 @@ export async function createUser(
                 nama,
                 username,
                 password: hashedPassword,
-                role
+                role,
+                kelas,
+                noTelp
             },
         });
         await logActivity(
@@ -61,6 +88,8 @@ export async function updateUser(
     username: string,
     password: string,
     role: Role,
+    kelas: string,
+    noTelp: string,
     currentUserId: number
 ) {
     try {
@@ -90,6 +119,8 @@ export async function updateUser(
                 nama,
                 username,
                 role,
+                kelas,
+                noTelp,
                 ...(password && { password: hashedPassword })
             },
         });
@@ -101,19 +132,36 @@ export async function updateUser(
 
 // Delete
 export async function deleteUser(id: number, currentUserId: number) {
-
     try {
-        const user = await db.user.delete({
+        const user = await db.user.findUnique({ where: { id } });
+        if (!user) throw new Error("User tidak ditemukan");
+
+        const updated = await db.user.update({    // 👈 GANTI dari delete() ke update()
             where: { id },
+            data: { deletedAt: new Date() }       // 👈 ISI deletedAt dengan waktu sekarang
         });
-        await logActivity(
-            currentUserId,
-            "DELETE_USER",
-            `Menghapus user ${user.username}`
-        );
-        return user;
-    }
-    catch (error: any) {
+
+        await logActivity(currentUserId, "DELETE_USER", `Menghapus user ${user.username}`);
+        return updated;
+    } catch (error: any) {
         throw new Error(error.message);
     }
 }
+
+// export async function deleteUser(id: number, currentUserId: number) {
+
+//     try {
+//         const user = await db.user.delete({
+//             where: { id },
+//         });
+//         await logActivity(
+//             currentUserId,
+//             "DELETE_USER",
+//             `Menghapus user ${user.username}`
+//         );
+//         return user;
+//     }
+//     catch (error: any) {
+//         throw new Error(error.message);
+//     }
+// }

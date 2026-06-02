@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getAllUsers, createUser, updateUser, deleteUser } from "@/services/userService";
+import { getAllUsers, getUserById, createUser, updateUser, deleteUser } from "@/services/userService";
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+
+        if (id) {
+            const user = await getUserById(Number(id));
+            if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+            return NextResponse.json(user);
+        }
+
         const data = await getAllUsers();
         return NextResponse.json(data);
     } catch (error: any) {
@@ -25,7 +34,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
     }
     try {
-        const user = await createUser(body.id, body.nama, body.username, body.password, body.role, Number(session.user.id));
+        const user = await createUser(body.id, body.nama, body.username, body.password, body.role, body.kelas, body.noTelp, Number(session.user.id));
         return NextResponse.json(user);
     }
     catch (error: any) {
@@ -44,7 +53,7 @@ export async function PUT(req: Request) {
 
     const body = await req.json();
     try {
-        const updated = await updateUser(body.id, body.nama, body.username, body.password, body.role, Number(session.user.id));
+        const updated = await updateUser(body.id, body.nama, body.username, body.password, body.role, body.kelas, body.noTelp, Number(session.user.id));
         return NextResponse.json(updated);
     }
     catch (err: any) {

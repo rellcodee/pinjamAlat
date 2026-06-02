@@ -3,21 +3,27 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
     LayoutDashboard,
-    ShoppingCart,
-    Package,
+    ClipboardList,
     RotateCcw,
+    ShoppingCart,
     Menu,
     X,
-    Circle,
-    LogOut
+    LogOut,
+    CalendarDays,
+    ChevronDown,
+    Box,
+    Bell
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
+// Menu navigasi Peminjam
 const menus = [
-    { name: "Daftar Alat", href: "/peminjam", icon: LayoutDashboard },
-    { name: "Daftar Pinjaman", href: "/peminjam/peminjaman", icon: Package },
-    { name: "Keranjang", href: "/peminjam/cart", icon: ShoppingCart },
+    { name: "Alat", href: "/peminjam", icon: Box },
+    { name: "Riwayat", href: "/peminjam/peminjaman", icon: ClipboardList },
+    { name: "Cart", href: "/peminjam/cart", icon: ShoppingCart },
     { name: "Pengembalian", href: "/peminjam/pengembalian", icon: RotateCcw },
 ];
 
@@ -26,43 +32,37 @@ export default function LayoutPeminjam({
 }: {
     children: React.ReactNode;
 }) {
+    const { data: session } = useSession();
     const [open, setOpen] = useState(false);
     const [time, setTime] = useState("");
     const pathname = usePathname();
 
-    // 🔥 CLOCK
+    const currentPage = menus.find(menu => menu.href === pathname)?.name || "Dashboard";
+
     useEffect(() => {
         const updateTime = () => {
             const now = new Date();
-
             const formatted = now.toLocaleString("id-ID", {
-                weekday: "short",
                 day: "numeric",
                 month: "short",
                 year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
             });
-
             setTime(formatted);
         };
-
         updateTime();
         const interval = setInterval(updateTime, 60000);
-
         return () => clearInterval(interval);
     }, []);
 
-    // 🔥 LOGOUT
     const handleLogout = async () => {
         if (!confirm("Yakin mau logout?")) return;
-
         try {
             await fetch("/api/logout", {
                 method: "POST",
                 credentials: "include",
             });
-
             window.location.href = "/login";
         } catch (err) {
             console.error("Logout error:", err);
@@ -70,127 +70,101 @@ export default function LayoutPeminjam({
     };
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-
+        <div className="flex min-h-screen bg-slate-50 text-slate-900 font-sans">
             {/* SIDEBAR */}
             <aside
                 className={`
-                    fixed md:static z-50 top-0 left-0 h-screen w-64 bg-white shadow-md
+                    fixed md:static z-50 top-0 left-0 h-screen w-64 bg-white text-slate-600 shadow-xl border-r border-slate-100
                     flex flex-col
                     transform ${open ? "translate-x-0" : "-translate-x-full"}
-                    md:translate-x-0 transition-all duration-300
+                    md:translate-x-0 transition-all duration-300 ease-in-out
                 `}
             >
-                {/* HEADER */}
-                <div className="flex items-center justify-between p-4 border-b">
-                    <h1 className="font-bold text-lg text-blue-600">
-                        PinjamPanel
-                    </h1>
-
-                    <button onClick={() => setOpen(false)} className="md:hidden">
+                <div className="flex items-center justify-between p-6 h-20 border-b border-slate-100">
+                    <Link href="/peminjam" className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <Box size={18} className="text-white" />
+                        </div>
+                        <h1 className="font-extrabold text-xl tracking-tight text-slate-800">
+                            Pinjam<span className="text-blue-600">Alat</span>
+                        </h1>
+                    </Link>
+                    <button onClick={() => setOpen(false)} className="md:hidden text-slate-400 hover:text-slate-600">
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* USER */}
-                <div className="p-5 border-b flex items-center gap-3">
-                    <div className="relative">
-                        <img
-                            src="/peminjam.png"
-                            className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-                    </div>
-
-                    <div>
-                        <p className="text-sm font-semibold text-gray-700">
-                            Peminjam
-                        </p>
-                        <p className="text-xs text-gray-500">
-                            Online
-                        </p>
-                    </div>
-                </div>
-
-                {/* MENU */}
-                <nav className="flex-1 p-4 space-y-1">
+                <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
                     {menus.map((item) => {
                         const isActive = pathname === item.href;
                         const Icon = item.icon;
-
                         return (
                             <Link
                                 key={item.name}
                                 href={item.href}
                                 onClick={() => setOpen(false)}
                                 className={`
-                                    flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition
+                                    flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all
                                     ${isActive
-                                        ? "bg-blue-100 text-blue-600 font-medium"
-                                        : "text-gray-600 hover:bg-gray-100"
+                                        ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100"
+                                        : "text-slate-500 hover:bg-slate-50 hover:text-blue-600"
                                     }
                                 `}
                             >
-                                <Icon size={18} />
+                                <Icon size={20} />
                                 {item.name}
                             </Link>
                         );
                     })}
                 </nav>
 
-                {/* LOGOUT */}
-                <div className="p-4 border-t">
+                <div className="p-4 border-t border-slate-100">
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm text-red-500 hover:bg-red-50 transition"
+                        className="flex items-center gap-3.5 w-full px-4 py-3 rounded-xl text-sm font-semibold text-rose-500 hover:bg-rose-50 transition-all"
                     >
-                        <LogOut size={18} />
-                        Logout
+                        <LogOut size={20} />
+                        Keluar
                     </button>
-                </div>
-
-                {/* FOOTER */}
-                <div className="p-4 border-t text-xs text-gray-400 text-center">
-                    © 2026 PinjamAlat
                 </div>
             </aside>
 
-            {/* OVERLAY */}
-            {open && (
-                <div
-                    onClick={() => setOpen(false)}
-                    className="fixed inset-0 bg-black/30 z-40 md:hidden"
-                />
-            )}
-
-            {/* MAIN */}
-            <div className="flex-1 flex flex-col">
-
-                {/* TOPBAR */}
-                <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
-
-                    {/* LEFT */}
-                    <button
-                        onClick={() => setOpen(true)}
-                        className="md:hidden"
-                    >
-                        <Menu size={22} />
-                    </button>
-
-                    {/* RIGHT */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-2">
-                            <Circle size={10} className="text-green-500 fill-green-500" />
-                            Online
+            {/* MAIN CONTENT AREA */}
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                <header className="bg-white/80 backdrop-blur-md h-20 px-6 flex items-center justify-between border-b border-slate-100 z-30 sticky top-0">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setOpen(true)} className="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100">
+                            <Menu size={24} />
+                        </button>
+                        <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-bold uppercase tracking-widest">
+                            <CalendarDays size={14} className="text-blue-500" />
+                            {time}
                         </div>
+                    </div>
 
-                        <span>{time}</span>
+                    <div className="flex items-center gap-4">
+                        <NotificationBell />
+                        <div className="h-10 w-px bg-slate-100 hidden sm:block"></div>
+                        <div className="flex items-center gap-3 p-1">
+                            <div className="text-right hidden md:block">
+                                <p className="text-sm font-bold text-slate-800 leading-none mb-1">
+                                    {session?.user?.name || "User"}
+                                </p>
+                                <p className="text-[10px] text-blue-600 font-black uppercase tracking-tighter">
+                                    Kelas {session?.user?.kelas || "-"}
+                                </p>
+                            </div>
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-100">
+                                {session?.user?.name?.charAt(0).toUpperCase() || "U"}
+                            </div>
+                        </div>
                     </div>
                 </header>
 
-                {/* CONTENT */}
-                <main className="p-4">
-                    {children}
+                <main className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8">
+                    <div className="max-w-[1400px] mx-auto h-full">
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

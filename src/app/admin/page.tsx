@@ -6,12 +6,9 @@ import {
     Users,
     Boxes,
     Wrench,
-    Clock,
-    ArrowRight,
-    PlusCircle,
-    Pencil,
-    Trash2,
-    Activity
+    ClipboardList,
+    ArchiveRestore,
+    ChartColumn
 } from "lucide-react";
 import Link from "next/link";
 
@@ -19,36 +16,35 @@ export default function AdminDashboard() {
     const [users, setUsers] = useState(0);
     const [kategori, setKategori] = useState(0);
     const [alat, setAlat] = useState(0);
-    const [logs, setLogs] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [peminjaman, setPeminjaman] = useState(0);
+    const [pengembalian, setPengembalian] = useState(0);
 
     const fetchData = async () => {
         try {
-            const [uRes, kRes, aRes, lRes] = await Promise.all([
+            const [uRes, kRes, aRes, pRes, rRes] = await Promise.all([
                 fetch("/api/user"),
                 fetch("/api/kategori"),
                 fetch("/api/alat"),
-                fetch("/api/log"),
+                fetch("/api/peminjaman?limit=1000"),
+                fetch("/api/pengembalian?limit=1000"),
             ]);
 
             const u = await uRes.json();
             const k = await kRes.json();
             const a = await aRes.json();
-            const l = await lRes.json();
-            console.log("users:", u);
-            console.log("kategori:", k);
-            console.log("alat:", a);
-            console.log("logs:", l);
+            const p = await pRes.json();
+            const r = await rRes.json();
+
+            const pArray = p.data || p;
+            const rArray = r.data || r;
 
             setUsers(Array.isArray(u) ? u.length : 0);
-            setKategori(Array.isArray(k) ? k.length : 0);
+            setKategori(Array.isArray(k.data) ? k.data.length : 0);
             setAlat(Array.isArray(a) ? a.length : 0);
-            setLogs(Array.isArray(l) ? l.slice(0, 3) : []);
-
+            setPeminjaman(Array.isArray(pArray) ? pArray.length : 0);
+            setPengembalian(Array.isArray(rArray) ? rArray.length : 0);
         } catch (err) {
             console.log(err);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -56,179 +52,125 @@ export default function AdminDashboard() {
         fetchData();
     }, []);
 
-    const formatTanggal = (date: string) => {
-        return new Date(date).toLocaleString("id-ID");
-    };
-    const getAksiStyle = (aksi: string) => {
-        if (aksi.includes("CREATE")) {
-            return {
-                icon: <PlusCircle size={14} />,
-                class: "bg-green-100 text-green-600"
-            };
-        }
 
-        if (aksi.includes("UPDATE")) {
-            return {
-                icon: <Pencil size={14} />,
-                class: "bg-yellow-100 text-yellow-600"
-            };
-        }
-
-        if (aksi.includes("DELETE")) {
-            return {
-                icon: <Trash2 size={14} />,
-                class: "bg-red-100 text-red-600"
-            };
-        }
-
-        return {
-            icon: <Activity size={14} />,
-            class: "bg-gray-100 text-gray-600"
-        };
-    };
     return (
         <AppLayout>
-            {/* 🔥 CONTAINER FIX */}
-            <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 overflow-hidden">
+            {/* Elegant and soft page container backdrop */}
+            <div className="min-h-full bg-[#F3F4FD] w-full py-6 md:py-8 font-sans antialiased text-slate-800">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 overflow-hidden">
 
-                {/* 🔥 WELCOME CARD FIX TOTAL */}
-                <div className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl p-2 flex flex-col md:flex-row items-center gap-6">
+                    {/* Welcome Banner Card */}
+                    <div className="w-full bg-gradient-to-r from-indigo-600 via-blue-600 to-blue-500 text-white rounded-[32px] p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-[0_8px_30px_rgb(59,130,246,0.1)] relative overflow-hidden">
+                        {/* Subtle Background Blobs */}
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
 
-                    {/* IMAGE */}
-                    <img
-                        src="/dashboard.png"
-                        className="h-32 md:h-40 object-contain"
-                    />
+                        <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
+                            {/* Dashboard Banner Image - Placed on the left */}
+                            <img
+                                src="/dashboard.png"
+                                alt="Dashboard Welcome illustration"
+                                className="h-32 md:h-36 object-contain drop-shadow-lg"
+                            />
 
-                    {/* TEXT */}
-                    <div className="text-center md:text-left">
-                        <h1 className="text-lg md:text-2xl font-bold">
-                            Welcome Back, Admin 👋
-                        </h1>
-                        <p className="text-sm opacity-90">
-                            Kelola sistem peminjaman alat dengan mudah
-                        </p>
+                            {/* Welcome Text */}
+                            <div className="text-center sm:text-left space-y-1.5">
+                                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                                    Welcome Admin
+                                </h1>
+                                <p className="text-sm md:text-base text-white/80 max-w-md font-medium leading-relaxed">
+                                    Kelola sistem peminjaman alat dengan mudah dan efisien melalui dashboard terpusat.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Banner CTA Action Button - Placed on the right */}
+                        <div className="relative z-10 flex-shrink-0 w-full md:w-auto">
+                            <Link
+                                href="/admin/log"
+                                className="w-full md:w-auto inline-flex justify-center items-center px-6 py-3 bg-white text-indigo-700 hover:bg-slate-100 font-bold rounded-xl text-xs tracking-wider uppercase transition-all duration-300 shadow-lg shadow-black/5"
+                            >
+                                Lihat Log Aktivitas
+                            </Link>
+                        </div>
                     </div>
 
-                </div>
-
-                {/* 🔥 STATS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <Link href={"/admin/user"}>
-                        <div className="bg-green-100 p-4 rounded-xl flex items-center gap-4">
-                            <div className="bg-green-200 p-3 rounded-lg">
-                                <Users className="text-green-700" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Users</p>
-                                <h2 className="text-xl font-bold text-gray-800">{users}</h2>
-                            </div>
-                        </div>
-                    </Link>
-                    <Link href={"/admin/kategori"}>
-                        <div className="bg-yellow-100 p-4 rounded-xl flex items-center gap-4">
-                            <div className="bg-yellow-200 p-3 rounded-lg">
-                                <Boxes className="text-yellow-700" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Kategori</p>
-                                <h2 className="text-xl font-bold text-gray-800">{kategori}</h2>
-                            </div>
-                        </div>
-                    </Link>
-                    <Link href="/admin/alat">
-                        <div className="bg-blue-100 p-4 rounded-xl flex items-center gap-4">
-                            <div className="bg-blue-200 p-3 rounded-lg">
-                                <Wrench className="text-blue-700" />
-                            </div>
-                            <div>
-                                <p className="text-sm text-gray-600">Alat</p>
-                                <h2 className="text-xl font-bold text-gray-800">{alat}</h2>
-                            </div>
-                        </div>
-                    </Link>
-
-
-                </div>
-
-                {/* 🔥 TABLE */}
-                <div className="bg-white rounded-xl shadow">
-
-                    {/* HEADER */}
-                    <div className="flex justify-between items-center p-4 border-b">
+                    {/* Statistics Category Cards Section */}
+                    <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <Clock size={18} />
-                            <h2 className="font-semibold">Latest Activity</h2>
+                            <div className="ml-1 border border-slate-100/60 bg-blue-100 p-2 rounded-2xl">
+                                <ChartColumn color="#4f46e5" />
+                            </div>
+                            <h2 className="text-xl font-bold tracking-tight text-slate-800">
+                                Statistik Sistem
+                            </h2>
                         </div>
 
-                        <Link
-                            href="/admin/log"
-                            className="flex items-center gap-1 text-sm text-blue-500 hover:underline"
-                        >
-                            Lihat Semua <ArrowRight size={16} />
-                        </Link>
+                        {/* Grid container holding 5 stat cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+                            {/* Card 1: Users */}
+                            <Link href="/admin/user">
+                                <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-slate-100/60 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-200/50 hover:translate-y-[-2px] transition-all duration-300 group">
+                                    <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                        <Users className="w-6 h-6" />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-800">Users</span>
+                                    <h3 className="text-3xl font-extrabold text-blue-700 mt-2">{users}</h3>
+                                    <span className="text-xs font-semibold text-slate-400 mt-1">({users} Users)</span>
+                                </div>
+                            </Link>
+
+                            {/* Card 2: Kategori */}
+                            <Link href="/admin/kategori">
+                                <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-slate-100/60 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-200/50 hover:translate-y-[-2px] transition-all duration-300 group">
+                                    <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100/50 flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                        <Boxes className="w-6 h-6" />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-800">Kategori</span>
+                                    <h3 className="text-3xl font-extrabold text-amber-700 mt-2">{kategori}</h3>
+                                    <span className="text-xs font-semibold text-slate-400 mt-1">({kategori} Kategori)</span>
+                                </div>
+                            </Link>
+
+                            {/* Card 3: Alat */}
+                            <Link href="/admin/alat">
+                                <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-slate-100/60 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-200/50 hover:translate-y-[-2px] transition-all duration-300 group">
+                                    <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100/50 flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                        <Wrench className="w-6 h-6" />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-800">Alat</span>
+                                    <h3 className="text-3xl font-extrabold text-rose-700 mt-2">{alat}</h3>
+                                    <span className="text-xs font-semibold text-slate-400 mt-1">({alat} Alat)</span>
+                                </div>
+                            </Link>
+
+                            {/* Card 4: Peminjaman */}
+                            <Link href="/admin/peminjaman">
+                                <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-slate-100/60 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-200/50 hover:translate-y-[-2px] transition-all duration-300 group">
+                                    <div className="w-14 h-14 rounded-2xl bg-cyan-50 text-cyan-600 border border-cyan-100/50 flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                        <ClipboardList className="w-6 h-6" />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-800">Peminjaman</span>
+                                    <h3 className="text-3xl font-extrabold text-cyan-700 mt-2">{peminjaman}</h3>
+                                    <span className="text-xs font-semibold text-slate-400 mt-1">({peminjaman} Pinjam)</span>
+                                </div>
+                            </Link>
+
+                            {/* Card 5: Pengembalian */}
+                            <Link href="/admin/pengembalian">
+                                <div className="bg-white p-6 rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.015)] border border-slate-100/60 flex flex-col items-center text-center hover:shadow-lg hover:border-slate-200/50 hover:translate-y-[-2px] transition-all duration-300 group">
+                                    <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100/50 flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                                        <ArchiveRestore className="w-6 h-6" />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-800">Pengembalian</span>
+                                    <h3 className="text-3xl font-extrabold text-purple-700 mt-2">{pengembalian}</h3>
+                                    <span className="text-xs font-semibold text-slate-400 mt-1">({pengembalian} Kembali)</span>
+                                </div>
+                            </Link>
+                        </div>
                     </div>
 
-                    {/* TABLE WRAPPER */}
-                    <div className="overflow-x-auto">
 
-                        <table className="w-full text-sm">
-
-                            <thead className="bg-blue-500 text-white">
-                                <tr>
-                                    <th className="p-3 text-left">User</th>
-                                    <th className="p-3 text-left">Aksi</th>
-                                    <th className="p-3 text-left">Waktu</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan={4} className="text-center p-4 text-gray-400">
-                                            Loading...
-                                        </td>
-                                    </tr>
-                                ) : logs.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={4} className="text-center p-4 text-gray-400">
-                                            Tidak ada aktivitas
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    logs.map((log, i) => {
-                                        const style = getAksiStyle(log.aksi || "");
-                                        return (
-                                            <tr
-                                                key={log.id}
-                                                className={i % 2 === 0 ? "bg-gray-100" : "bg-white"}
-                                            >
-                                                <td className="p-3 text-black">{log.user?.nama || "-"}</td>
-
-                                                <td className="p-3 font-semibold">
-                                                    <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium transition ${style.class}`}>
-                                                        {style.icon}
-                                                        <span>
-                                                            {log.aksi?.replaceAll("_", " ")}
-                                                        </span>
-                                                    </div>
-                                                </td>
-
-
-                                                <td className="p-1 text-gray-500">
-                                                    {formatTanggal(log.waktu)}
-                                                </td>
-                                            </tr>
-                                        )
-                                    })
-                                )}
-                            </tbody>
-
-                        </table>
-
-                    </div>
                 </div>
-
             </div>
         </AppLayout>
     );

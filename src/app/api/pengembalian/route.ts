@@ -4,12 +4,16 @@ import {
     getAllPengembalian,
     createPengembalian,
     updatePengembalian,
-    deletePengembalian
+    deletePengembalian,
+    tandaiLunas
 } from "@/services/pengembalianService";
 
 // GET
-export async function GET() {
-    const data = await getAllPengembalian();
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get("page") || 1);
+    const limit = Number(searchParams.get("limit") || 10);
+    const data = await getAllPengembalian(page, limit);
     return NextResponse.json(data);
 }
 
@@ -41,8 +45,10 @@ export async function PUT(req: Request) {
 
     try {
         const data = await updatePengembalian(
-            body.id,
-            body.tanggalKembaliAktual,
+            Number(body.id),
+            {
+                tanggalKembaliAktual: body.tanggalKembaliAktual
+            },
             Number(session.user.id)
         );
         return NextResponse.json(data);
@@ -62,6 +68,20 @@ export async function DELETE(req: Request) {
     try {
         await deletePengembalian(id, Number(session.user.id));
         return NextResponse.json({ success: true });
+    } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+}
+
+// PATCH - tandai lunas denda
+export async function PATCH(req: Request) {
+    const session = await auth();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    try {
+        const data = await tandaiLunas(Number(body.id), Number(session.user.id));
+        return NextResponse.json(data);
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 400 });
     }

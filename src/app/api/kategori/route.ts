@@ -8,8 +8,13 @@ import {
 } from "@/services/kategoriService";
 
 // ✅ GET ALL
-export async function GET() {
-    const data = await getAllKategori();
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+
+    const data = await getAllKategori(page, limit, search);
     return NextResponse.json(data);
 }
 

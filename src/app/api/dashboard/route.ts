@@ -15,6 +15,7 @@ export async function GET() {
         });
 
         const totalDenda = await db.pengembalian.aggregate({
+            where: { dendaLunas: false },
             _sum: { totalDenda: true }
         });
 

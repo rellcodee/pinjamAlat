@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
     const data = await createAlatUnit(
         body.alatId,
-        Number(session.user.id)
+        Number(session.user.id),
     );
 
     return Response.json(data);
