@@ -88,7 +88,12 @@ export default function PetugasPengembalianPage() {
             let matchLunas = true;
             if (filterLunas !== "all") {
                 const isLunas = p.pengembalian?.dendaLunas;
-                matchLunas = filterLunas === "lunas" ? isLunas === true : isLunas === false;
+                const totalDenda = p.pengembalian?.totalDenda || 0;
+                const isZero = totalDenda === 0;
+
+                matchLunas = filterLunas === "lunas" ? isLunas === true :
+                    filterLunas === "belum" ? (isLunas === false && !isZero) :
+                        filterLunas === "zero" ? isZero : true;
             }
 
             return matchSearch && matchStatus && matchDate && matchLunas;
@@ -195,21 +200,22 @@ export default function PetugasPengembalianPage() {
                             placeholder="Cari nama peminjam..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 pl-14 pr-6 text-sm font-black focus:bg-white focus:border-emerald-500 transition-all outline-none"
+                            className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 pl-14 pr-6 text-sm font-bold focus:bg-white focus:border-emerald-500 transition-all outline-none"
                         />
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
-                        <div className="relative min-w-[180px]">
-                            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <div className="relative min-w-[200px]">
+                            <Filter className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <select
                                 value={filterLunas}
                                 onChange={(e) => setFilterLunas(e.target.value)}
-                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-[11px] font-black appearance-none focus:ring-4 focus:ring-emerald-100 outline-none cursor-pointer transition-all uppercase tracking-widest"
+                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 text-sm pr-6 font-bold appearance-none focus:ring-4 focus:ring-emerald-100 outline-none cursor-pointer transition-all uppercase tracking-widest"
                             >
                                 <option value="all">SST. DENDA</option>
                                 <option value="lunas">LUNAS</option>
                                 <option value="belum">BELUM LUNAS</option>
+                                <option value="zero">BEBAS DENDA</option>
                             </select>
                         </div>
 
@@ -219,7 +225,7 @@ export default function PetugasPengembalianPage() {
                                 type="date"
                                 value={filterDate}
                                 onChange={(e) => setFilterDate(e.target.value)}
-                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-sm font-black focus:ring-4 focus:ring-emerald-100 outline-none appearance-none"
+                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-sm font-bold focus:ring-4 focus:ring-emerald-100 outline-none appearance-none"
                             />
                         </div>
                     </div>
@@ -229,13 +235,13 @@ export default function PetugasPengembalianPage() {
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-slate-50/50">
+                            <thead className="bg-blue-600">
                                 <tr>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">ID</th>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Peminjam</th>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Tgl Pinjam</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">ID</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">Peminjam</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">Tgl Pinjam</th>
                                     <th
-                                        className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 text-center cursor-pointer hover:text-blue-500 transition-colors"
+                                        className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white text-center cursor-pointer hover:text-blue-500 transition-colors"
                                         onClick={() => {
                                             if (sortBy === 'denda') {
                                                 setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -274,6 +280,7 @@ export default function PetugasPengembalianPage() {
                                         const isDone = p.status === "selesai";
                                         const hasDenda = p.pengembalian && p.pengembalian.totalDenda > 0;
                                         const isLunas = p.pengembalian && p.pengembalian.dendaLunas;
+                                        const isNoDenda = p.pengembalian && p.pengembalian.totalDenda === 0;
 
                                         return (
                                             <tr key={p.id} className="hover:bg-blue-50/30 transition-all group">

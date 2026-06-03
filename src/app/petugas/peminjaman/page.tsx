@@ -181,7 +181,7 @@ export default function PetugasPeminjamanPage() {
                             placeholder="Cari nama peminjam..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 pl-14 pr-6 text-sm font-black focus:bg-white focus:border-blue-500 transition-all outline-none"
+                            className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 pl-14 pr-6 text-sm font-bold focus:bg-white focus:border-blue-500 transition-all outline-none"
                         />
                     </div>
 
@@ -191,7 +191,7 @@ export default function PetugasPeminjamanPage() {
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-sm font-black appearance-none focus:ring-4 focus:ring-blue-100 outline-none cursor-pointer transition-all"
+                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-sm font-bold appearance-none focus:ring-4 focus:ring-blue-100 outline-none cursor-pointer transition-all"
                             >
                                 <option value="all">SEMUA STATUS</option>
                                 <option value="pending">PENDING</option>
@@ -208,7 +208,7 @@ export default function PetugasPeminjamanPage() {
                                 type="date"
                                 value={filterDate}
                                 onChange={(e) => setFilterDate(e.target.value)}
-                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-sm font-black focus:ring-4 focus:ring-blue-100 outline-none appearance-none"
+                                className="w-full bg-slate-100 border-none rounded-[1.5rem] py-4 pl-12 pr-6 text-sm font-bold focus:ring-4 focus:ring-blue-100 outline-none appearance-none"
                             />
                         </div>
                     </div>
@@ -219,12 +219,12 @@ export default function PetugasPeminjamanPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-slate-50/50 border-b border-slate-100">
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">ID</th>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Peminjam</th>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Tanggal Pinjam</th>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Status</th>
-                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Aksi</th>
+                                <tr className="bg-blue-600 border-b border-slate-100">
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">ID</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">Peminjam</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">Tanggal Pinjam</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white">Status</th>
+                                    <th className="px-8 py-7 text-[11px] font-black uppercase tracking-[0.2em] text-white text-right">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">

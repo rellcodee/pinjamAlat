@@ -6,8 +6,6 @@ import {
     updateAlat,
     deleteAlat,
 } from "@/services/alatService";
-import { db } from "@/lib/db";
-import { logActivity } from "@/services/logService";
 
 // ✅ GET
 export async function GET() {
@@ -34,21 +32,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { nama, deskripsi, kategoriId, image, stok, merk } = body;
 
-
     try {
-        const alat = await db.alat.create({
-            data: {
-                nama,
-                deskripsi,
-                image,
-                stok,
-                kategori: {
-                    connect: { id: kategoriId }
-                },
-                merk
-            }
-        });
-        logActivity(Number(session.user.id), "CREATE_ALAT", `Membuat alat ${nama}`);
+        // ✅ Gunakan service createAlat() agar notifikasi ke petugas & peminjam ikut terkirim
+        const alat = await createAlat(
+            { nama, deskripsi, kategoriId: Number(kategoriId), image, stok, merk },
+            Number(session.user.id)
+        );
         return NextResponse.json(alat);
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 400 });

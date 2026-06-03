@@ -1,12 +1,5 @@
-"use client";
-
-import Layout from "@/components/layout/AppLayout";
-import NotificationsList from "@/components/notifications/NotificationsList";
+import { redirect } from "next/navigation";
 
 export default function AdminNotificationsPage() {
-  return (
-    <Layout>
-      <NotificationsList />
-    </Layout>
-  );
+  redirect("/admin");
 }

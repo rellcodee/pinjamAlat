@@ -19,7 +19,6 @@ import {
     ChevronDown,
     Settings
 } from "lucide-react";
-import NotificationBell from "@/components/NotificationBell";
 
 
 // Menu navigasi
@@ -203,10 +202,6 @@ export default function AppLayout({
 
                     {/* 🔥 AREA PROFIL USER - Di paling kanan */}
                     <div className="flex items-center gap-4">
-                        <NotificationBell />
-
-                        {/* Separator Garis Vertikal */}
-                        <div className="h-10 w-px bg-slate-100 hidden sm:block"></div>
 
 
                         {/* Dropdown/Info User */}

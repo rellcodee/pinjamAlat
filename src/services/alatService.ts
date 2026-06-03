@@ -26,7 +26,7 @@ export async function createAlat(data: {
     kategoriId: number;
     image?: string;
     merk?: string;
-    type?: string;
+    stok?: number;
 }, currentUserId: number) {
     // validasi kategori
     const kategori = await db.kategori.findUnique({
@@ -72,7 +72,7 @@ export async function createAlat(data: {
         "Alat Terbaru Rilis!",
         `Ada alat baru yang mungkin Anda butuhkan: ${data.nama}`,
         "INFO",
-        `/siswa/katalog` // Assuming borrowers catalog path
+        `/peminjam`
     );
 
     return newAlat;

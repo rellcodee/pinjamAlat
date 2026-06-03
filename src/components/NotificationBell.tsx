@@ -39,7 +39,6 @@ export default function NotificationBell() {
 
   // Determine notification link based on current layout path
   const getNotificationLink = () => {
-    if (pathname.startsWith("/admin")) return "/admin/notifications";
     if (pathname.startsWith("/petugas")) return "/petugas/notifications";
     if (pathname.startsWith("/peminjam")) return "/peminjam/notifications";
     return "/notifications";

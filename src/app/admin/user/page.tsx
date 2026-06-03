@@ -36,9 +36,9 @@ export default function UsersPage() {
 
     // 🌟 Filter, Sort, Paginate (Logika diperbarui)
     const filteredUsers = users
-        .filter((u) => u.role !== "admin") // Tetap sembunyikan admin utama
         .filter((u) => {
             // Filter berdasarkan pilihan Role dropdown
+            if (u.role === "admin") return false;
             if (roleFilter === "all") return true;
             return u.role === roleFilter;
         })

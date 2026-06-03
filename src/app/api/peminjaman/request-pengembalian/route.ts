@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { requestPengembalian } from "@/services/peminjamanService";
+
 
 // ✅ REQUEST
 export async function POST(req: Request) {
@@ -26,12 +28,7 @@ export async function POST(req: Request) {
         }
 
         // 🔥 UPDATE STATUS
-        const updated = await db.peminjaman.update({
-            where: { id: body.id },
-            data: {
-                status: "menunggu_pengembalian"
-            }
-        });
+        const updated = await requestPengembalian(body.id, Number(session.user.id));
 
         return NextResponse.json(updated);
 

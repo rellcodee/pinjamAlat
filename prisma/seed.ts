@@ -23,6 +23,8 @@ async function main() {
     await prisma.$executeRawUnsafe('TRUNCATE TABLE pengaturan;');
     await prisma.$executeRawUnsafe('TRUNCATE TABLE users;'); // <--- Nama tabel MySQL untuk model User
     await prisma.$executeRawUnsafe('TRUNCATE TABLE kategori;');
+    await prisma.$executeRawUnsafe('TRUNCATE TABLE notifications;');
+
 
     // 3. Nyalakan kembali proteksi foreign key demi keamanan database
     await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');

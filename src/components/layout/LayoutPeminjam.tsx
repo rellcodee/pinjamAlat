@@ -136,10 +136,7 @@ export default function LayoutPeminjam({
                         <button onClick={() => setOpen(true)} className="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100">
                             <Menu size={24} />
                         </button>
-                        <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-bold uppercase tracking-widest">
-                            <CalendarDays size={14} className="text-blue-500" />
-                            {time}
-                        </div>
+
                     </div>
 
                     <div className="flex items-center gap-4">

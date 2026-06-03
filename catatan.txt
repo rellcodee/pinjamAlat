@@ -1,5 +1,1 @@
-fitur notifikasi. 
-sekarang sedang tidak jalan fitur notifikasi
-admin ga dapet notification
-peminjam memiliki akses notifikasi mecakup alat yg baru di tambahkan admin.request peminjaman yg dia lakukan dan pengembalian yg sudah di approve petugas, yg terdapat jumlah denda.
-dan petugas memiliki akses notifikasi mencakup request peminjaman yg dilakukan peminjam, req pengembalian yg diajukan peminjam dan alat yg baru di tambahkan admin.
+masalah petugas, tidak bisa mengkonfirmasi kelunasan denda.
