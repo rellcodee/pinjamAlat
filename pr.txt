@@ -1,6 +1,0 @@
-buakan app/admin/page.tsx halaman admin, dengan style seperti file public/admindashboardr.jpeg. gunakan font juga yg mendukung. jangan mengguakan font memanggil dari url. local saja untuk offline.
-gua udah punya design yg sama layoutnya cuman kurang menarik seperti contoh.ikuti referensi.
-untuk table. masalah isi tablenya samakan saja dengan apa yg sudah ada sebelumnya.
-untuk card stat nya, ikon dan warna bisa sama seperti contoh cuman di tambah count pada value nya dan list cardnya menjadi user, kategori, alat, peminjaman dan pengembalian.
-untuk welcome card nya, gunakan image yg ada di public/dashboard.png gambar tetap di kiri. cuman design lainnya mengikuti.
-buat semuanya mendukung responsive
