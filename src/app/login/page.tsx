@@ -38,16 +38,21 @@ export default function LoginPage() {
         const response = await fetch("/api/auth/session")
         const session = await response.json()
         const role = session?.user?.role
-
         if (role === "admin") {
-            window.location.href = "/admin"
+            setTimeout(() => {
+                window.location.href = "/admin"
+            }, 500)
         } else if (role === "petugas") {
-            window.location.href = "/petugas"
+            setTimeout(() => {
+                window.location.href = "/petugas"
+            }, 500)
         } else if (role === "peminjam") {
-            window.location.href = "/peminjam"
+            setTimeout(() => {
+                window.location.href = "/peminjam"
+            }, 500)
         } else {
-            // Jaga-jaga kalau vercel telat ngasih session di klik pertama
-            setError("Sistem sedang sinkronisasi cookies, silakan klik masuk sekali lagi.")
+            // Jaga-jaga kalau pas di-fetch pertama kali nilainya masih null karena Vercel telat
+            setError("Sistem sedang mencocokkan sesi, silakan klik tombol Masuk sekali lagi.")
         }
     }
 
