@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -14,8 +15,8 @@ model User {
   username                  String         @unique(map: "username") @db.VarChar(50)
   password                  String         @db.VarChar(255)
   role                      Role           @default(peminjam)
-  noTelp                    String?         @db.VarChar(15)
-  kelas                     String?         @db.VarChar(15)
+  noTelp                    String?        @db.VarChar(15)
+  kelas                     String?        @db.VarChar(15)
   createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
   deletedAt                 DateTime?      @map("deleted_at") @db.Timestamp(0)
   logAktivitas              LogAktivitas[]
@@ -23,16 +24,16 @@ model User {
   peminjamanSebagaiPetugas  Peminjaman[]   @relation("PetugasRelation")
   pengembalian              Pengembalian[]
   notifications             Notification[]
- 
+
   @@map("users")
 }
 
 model Kategori {
-  id        Int     @id @default(autoincrement())
-  kode      String? @unique(map: "kode_kategori") @db.VarChar(10)
-  nama      String  @unique @db.VarChar(100)
-  deskripsi String? @db.Text
-  deletedAt                 DateTime?      @map("deleted_at") @db.Timestamp(0)
+  id        Int       @id @default(autoincrement())
+  kode      String?   @unique(map: "kode_kategori") @db.VarChar(10)
+  nama      String    @unique @db.VarChar(100)
+  deskripsi String?   @db.Text
+  deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
   alat      Alat[]
   @@map("kategori")
 }
@@ -47,23 +48,23 @@ model Alat {
   merk       String?    @db.VarChar(50)
   kategori   Kategori   @relation(fields: [kategoriId], references: [id], onUpdate: NoAction, map: "fk_alat_kategori")
   units      AlatUnit[]
-  deletedAt                 DateTime?      @map("deleted_at") @db.Timestamp(0)
+  deletedAt  DateTime?  @map("deleted_at") @db.Timestamp(0)
   
-  @@index([kategoriId], map: "fk_alat_kategori")
+  @@index([kategoriId], map: "idx_alat_kategori") // <-- DIUBAH JADI idx_
   @@map("alat")
 }
 
 model AlatUnit {
-  id       Int                @id @default(autoincrement())
-  alatId   Int                @map("alat_id")
-  kodeUnit String             @unique(map: "kode_unit") @map("kode_unit") @db.VarChar(20)
-  kondisi  Kondisi            @default(baik)
-  status   StatusUnit         @default(tersedia)
-  deletedAt                 DateTime?      @map("deleted_at") @db.Timestamp(0)
-  alat     Alat               @relation(fields: [alatId], references: [id], onUpdate: NoAction, map: "fk_unit_alat")
-  details  DetailPeminjaman[]
+  id        Int                @id @default(autoincrement())
+  alatId    Int                @map("alat_id")
+  kodeUnit  String             @unique(map: "kode_unit") @map("kode_unit") @db.VarChar(20)
+  kondisi   Kondisi            @default(baik)
+  status    StatusUnit         @default(tersedia)
+  deletedAt DateTime?          @map("deleted_at") @db.Timestamp(0)
+  alat      Alat               @relation(fields: [alatId], references: [id], onUpdate: NoAction, map: "fk_unit_alat")
+  details   DetailPeminjaman[]
   
-  @@index([alatId], map: "fk_unit_alat")
+  @@index([alatId], map: "idx_unit_alat") // <-- DIUBAH JADI idx_
   @@map("alat_unit")
 }
 
@@ -80,8 +81,8 @@ model Peminjaman {
   petugas               User?              @relation("PetugasRelation", fields: [petugasId], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_peminjaman_petugas")
   pengembalian          Pengembalian?
 
-  @@index([peminjamId], map: "fk_peminjaman_peminjam")
-  @@index([petugasId], map: "fk_peminjaman_petugas")
+  @@index([peminjamId], map: "idx_peminjaman_peminjam") // <-- DIUBAH JADI idx_
+  @@index([petugasId], map: "idx_peminjaman_petugas")   // <-- DIUBAH JADI idx_
   @@map("peminjaman")
 }
 
@@ -92,8 +93,8 @@ model DetailPeminjaman {
   peminjaman   Peminjaman @relation(fields: [peminjamanId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_detail_peminjaman")
   alatUnit     AlatUnit   @relation(fields: [alatUnitId], references: [id], onUpdate: NoAction, map: "fk_detail_unit")
 
-  @@index([peminjamanId], map: "fk_detail_peminjaman")
-  @@index([alatUnitId], map: "fk_detail_unit")
+  @@index([peminjamanId], map: "idx_detail_peminjaman") // <-- DIUBAH JADI idx_
+  @@index([alatUnitId], map: "idx_detail_unit")         // <-- DIUBAH JADI idx_
   @@map("detail_peminjaman")
 }
 
@@ -109,19 +110,19 @@ model Pengembalian {
   peminjaman           Peminjaman @relation(fields: [peminjamanId], references: [id], onUpdate: NoAction, map: "fk_pengembalian_peminjaman")
   petugas              User       @relation(fields: [petugasId], references: [id], onUpdate: NoAction, map: "fk_pengembalian_petugas")
 
-  @@index([petugasId], map: "fk_pengembalian_petugas")
+  @@index([petugasId], map: "idx_pengembalian_petugas") // <-- DIUBAH JADI idx_
   @@map("pengembalian")
 }
 
 model LogAktivitas {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @map("user_id")
-  aksi       String   @db.VarChar(100)
-  keterangan String?  @db.Text
-  waktu      DateTime @default(now()) @db.Timestamp(0)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_log_user")
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  aksi       String    @db.VarChar(100)
+  keterangan String?   @db.Text
+  waktu      DateTime  @default(now()) @db.Timestamp(0)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_log_user")
 
-  @@index([userId], map: "fk_log_user")
+  @@index([userId], map: "idx_log_user") // <-- DIUBAH JADI idx_
   @@map("log_aktivitas")
 }
 
@@ -165,13 +166,12 @@ model Notification {
   userId    Int      @map("user_id")
   title     String   @db.VarChar(255)
   message   String   @db.Text
-  type      String   @db.VarChar(50) // INFO, WARNING, SUCCESS, DANGER
+  type      String   @db.VarChar(50)
   isRead    Boolean  @default(false) @map("is_read")
   link      String?  @db.Text
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_notification_user")
 
-  @@index([userId], map: "fk_notification_user")
+  @@index([userId], map: "idx_notification_user") // <-- DIUBAH JADI idx_
   @@map("notifications")
 }
-
