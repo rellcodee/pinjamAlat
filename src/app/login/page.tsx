@@ -39,9 +39,16 @@ export default function LoginPage() {
         const session = await response.json()
         const role = session?.user?.role
 
-        if (role === "admin") router.push("/admin")
-        else if (role === "petugas") router.push("/petugas")
-        else router.push("/peminjam")
+        if (role === "admin") {
+            window.location.href = "/admin"
+        } else if (role === "petugas") {
+            window.location.href = "/petugas"
+        } else if (role === "peminjam") {
+            window.location.href = "/peminjam"
+        } else {
+            // Jaga-jaga kalau vercel telat ngasih session di klik pertama
+            setError("Sistem sedang sinkronisasi cookies, silakan klik masuk sekali lagi.")
+        }
     }
 
     return (
