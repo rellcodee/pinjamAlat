@@ -18,41 +18,39 @@ export default function LoginPage() {
 
         const formData = new FormData(e.currentTarget)
 
-        // signIn() dari NextAuth — memanggil authorize() di auth.ts
+        // 1. Jalankan autentikasi NextAuth
         const result = await signIn("credentials", {
             username: formData.get("username"),
             password: formData.get("password"),
-            redirect: false, // kita handle redirect sendiri
+            redirect: false,
         })
         console.log("RESULT:", result)
 
-        setLoading(false)
-
         if (result?.error) {
             setError("Username atau password salah")
+            setLoading(false)
             return
         }
 
-        // Ambil session untuk tahu role-nya, lalu redirect
-        // NextAuth otomatis update session setelah signIn berhasil
-        const response = await fetch("/api/auth/session")
-        const session = await response.json()
-        const role = session?.user?.role
+        // 2. 🔥 Ambil role lewat API khusus buatan kita yang jauh lebih stabil di cloud
+        const response = await fetch("/api/auth/get-role")
+        const data = await response.json()
+        const role = data?.role
+
+        console.log("ROLE YANG DIDAPAT:", role)
+
+        setLoading(false)
+
+        // 3. Alihkan rute berdasarkan role asli dari server
         if (role === "admin") {
-            setTimeout(() => {
-                window.location.href = "/admin"
-            }, 500)
+            window.location.href = "/admin"
         } else if (role === "petugas") {
-            setTimeout(() => {
-                window.location.href = "/petugas"
-            }, 500)
+            window.location.href = "/petugas"
         } else if (role === "peminjam") {
-            setTimeout(() => {
-                window.location.href = "/peminjam"
-            }, 500)
+            window.location.href = "/peminjam"
         } else {
-            // Jaga-jaga kalau pas di-fetch pertama kali nilainya masih null karena Vercel telat
-            setError("Sistem sedang mencocokkan sesi, silakan klik tombol Masuk sekali lagi.")
+            // Jika role tetap gagal terbaca karena masalah inisialisasi cookies awal di cloud
+            setError("Sesi sedang disiapkan, silakan klik tombol Masuk sekali lagi.")
         }
     }
 
